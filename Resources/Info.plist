@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>local.mixingdesk.app</string>
+<key>CFBundleName</key><string>Mixing Desk</string>
+<key>CFBundleDisplayName</key><string>Mixing Desk</string>
+<key>CFBundleExecutable</key><string>MixingDesk</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleVersion</key><string>7</string>
+<key>CFBundleShortVersionString</key><string>0.4.1</string>
+<key>LSMinimumSystemVersion</key><string>14.4</string>
+<key>NSHighResolutionCapable</key><true/>
+<key>NSMicrophoneUsageDescription</key><string>Mixing Desk routes your microphone and instrument audio to the mixes you choose.</string>
+<key>NSAudioCaptureUsageDescription</key><string>Mixing Desk captures selected applications so you can mix and route their audio.</string>
+<key>NSSupportsAutomaticTermination</key><false/>
+</dict></plist>

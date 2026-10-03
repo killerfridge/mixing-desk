@@ -1,0 +1,1203 @@
+// !$*UTF8*$!
+{
+	"archiveVersion" = "1";
+	"classes" = {
+	};
+	"objectVersion" = "56";
+	"objects" = {
+		"59B53EDD3BABC291DFA6242C" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.cpp";
+			"path" = "Sources/DeskAudio/Engine.cpp";
+			"sourceTree" = "<group>";
+		};
+		"57B5FE06EDF19D2960BF7544" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.objcpp";
+			"path" = "Sources/DeskAudio/AudioHost.mm";
+			"sourceTree" = "<group>";
+		};
+		"A6DF6AB4EAF213787ABAA4E9" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.objcpp";
+			"path" = "Sources/DeskAudio/AudioUnitHost.mm";
+			"sourceTree" = "<group>";
+		};
+		"C66C0A9D3C93F44F60F5F3D6" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.objcpp";
+			"path" = "Sources/DeskAudio/PluginHost.mm";
+			"sourceTree" = "<group>";
+		};
+		"C25D8F527752A2476CD536C6" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.objcpp";
+			"path" = "Sources/DeskAudio/VST3Host.mm";
+			"sourceTree" = "<group>";
+		};
+		"669560A5D7FEA2DB03C1F95A" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.cpp";
+			"path" = "Sources/DeskAudio/VST3Identifiers.cpp";
+			"sourceTree" = "<group>";
+		};
+		"7CD14FD9BDD56954FCE31222" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.cpp";
+			"path" = "Sources/DeskAudio/VST3SDK/pluginterfaces/base/funknown.cpp";
+			"sourceTree" = "<group>";
+		};
+		"7C9566F52F04D4AF3A0A8198" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/DeskModels/Models.swift";
+			"sourceTree" = "<group>";
+		};
+		"6088CAA779B770BBF8840F8D" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/MixingDesk/ContentView.swift";
+			"sourceTree" = "<group>";
+		};
+		"61034F36F2F00D312BA5485E" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/MixingDesk/DeskLayout.swift";
+			"sourceTree" = "<group>";
+		};
+		"DDB621FAB836BF0AD6939741" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/MixingDesk/DeskStore.swift";
+			"sourceTree" = "<group>";
+		};
+		"FCA260F92F9E52D56C3E8638" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/MixingDesk/FaderMouseSurface.swift";
+			"sourceTree" = "<group>";
+		};
+		"38D7459BEACB28645921A63C" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/MixingDesk/InsertEditor.swift";
+			"sourceTree" = "<group>";
+		};
+		"FEBBEF7567C14EE39E4BD54B" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/MixingDesk/MixingDeskApp.swift";
+			"sourceTree" = "<group>";
+		};
+		"BFBD156DE6FD4FD738A35B1A" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/MixingDesk/PluginViews.swift";
+			"sourceTree" = "<group>";
+		};
+		"43D88039AD3231EA61DB3884" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/MixingDesk/ResettableSlider.swift";
+			"sourceTree" = "<group>";
+		};
+		"E911FD1BFD01D09DD51FF7B7" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/MixingDesk/RoutingViews.swift";
+			"sourceTree" = "<group>";
+		};
+		"6939255ABABCC22C5C3FE476" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.objcpp";
+			"path" = "Driver/Driver.mm";
+			"sourceTree" = "<group>";
+		};
+		"C11BAB9C7892D255DEF3AD2C" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Tests/DeskModelsTests/SessionTests.swift";
+			"sourceTree" = "<group>";
+		};
+		"A9CBBC1DB9A05BB74306242B" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.h";
+			"path" = "Sources/DeskAudio/Engine.hpp";
+			"sourceTree" = "<group>";
+		};
+		"BB46E8DA53AEFAEF756A7C71" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.h";
+			"path" = "Sources/DeskAudio/AudioUnitHost.hpp";
+			"sourceTree" = "<group>";
+		};
+		"69C2DD6E94F399D28BBE6CB9" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.h";
+			"path" = "Sources/DeskAudio/PluginHost.hpp";
+			"sourceTree" = "<group>";
+		};
+		"F7C4AAE9ACDBE107D964E752" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.h";
+			"path" = "Sources/DeskAudio/VST3Support.hpp";
+			"sourceTree" = "<group>";
+		};
+		"E481F760A8A70E87930D0970" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.h";
+			"path" = "Sources/DeskAudio/Equalizer.hpp";
+			"sourceTree" = "<group>";
+		};
+		"3BA5BEE456E9C3DEDED60418" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.h";
+			"path" = "Sources/DeskAudio/InsertProcessor.hpp";
+			"sourceTree" = "<group>";
+		};
+		"C099DC8A416099ABBC4DFC1D" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.c.h";
+			"path" = "Sources/DeskAudio/include/DeskAudio.h";
+			"sourceTree" = "<group>";
+		};
+		"4DC90B91CA90BA0366383E68" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text";
+			"path" = "Sources/DeskAudio/include/module.modulemap";
+			"sourceTree" = "<group>";
+		};
+		"F85EEB1A1FAE3EA8C1A05898" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.c.h";
+			"path" = "Sources/DeskAudio/DriverProtocol.h";
+			"sourceTree" = "<group>";
+		};
+		"938D73890D0BD4F0FD4C5D8D" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.h";
+			"path" = "Driver/TimestampRing.hpp";
+			"sourceTree" = "<group>";
+		};
+		"5318E19337B000B06F194979" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text.plist.xml";
+			"path" = "Resources/Info.plist";
+			"sourceTree" = "<group>";
+		};
+		"8F8B4E1B4D10075FC2A6B58D" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text.plist.xml";
+			"path" = "Driver/Info.plist";
+			"sourceTree" = "<group>";
+		};
+		"7409358E0E2826BBB9CCB7D4" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.cpp";
+			"path" = "Tests/EngineTests.cpp";
+			"sourceTree" = "<group>";
+		};
+		"70A030A4B98ED3535E42AC17" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.h";
+			"path" = "Tests/EQChecks.hpp";
+			"sourceTree" = "<group>";
+		};
+		"9BE44F851B961DB052A58CAD" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.h";
+			"path" = "Tests/HostedInsertChecks.hpp";
+			"sourceTree" = "<group>";
+		};
+		"23F31C49D4CFF85E63DB54BB" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.objcpp";
+			"path" = "Tests/AudioUnitTests.mm";
+			"sourceTree" = "<group>";
+		};
+		"2DAFA3BD893E00D98F8F3193" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.objcpp";
+			"path" = "Tests/DriverTests.mm";
+			"sourceTree" = "<group>";
+		};
+		"0C045C78F52DBBAA710167AB" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text";
+			"path" = "Sources/DeskAudio/VST3SDK/pluginterfaces/LICENSE.txt";
+			"sourceTree" = "<group>";
+		};
+		"1368ED67610456A059BCBFA4" = {
+			"isa" = "PBXFileReference";
+			"explicitFileType" = "archive.ar";
+			"includeInIndex" = "0";
+			"path" = "libDeskAudio.a";
+			"sourceTree" = "BUILT_PRODUCTS_DIR";
+		};
+		"39C628B9666B2BDF2116DA92" = {
+			"isa" = "PBXFileReference";
+			"explicitFileType" = "archive.ar";
+			"includeInIndex" = "0";
+			"path" = "libDeskModels.a";
+			"sourceTree" = "BUILT_PRODUCTS_DIR";
+		};
+		"B11A69A124375A4F5A323332" = {
+			"isa" = "PBXFileReference";
+			"explicitFileType" = "wrapper.application";
+			"includeInIndex" = "0";
+			"path" = "Mixing Desk.app";
+			"sourceTree" = "BUILT_PRODUCTS_DIR";
+		};
+		"86598A674FA00314CA471D48" = {
+			"isa" = "PBXFileReference";
+			"explicitFileType" = "wrapper.cfbundle";
+			"includeInIndex" = "0";
+			"path" = "MixingDeskAudio.driver";
+			"sourceTree" = "BUILT_PRODUCTS_DIR";
+		};
+		"160124633F81603977213374" = {
+			"isa" = "PBXFileReference";
+			"explicitFileType" = "wrapper.cfbundle";
+			"includeInIndex" = "0";
+			"path" = "DeskModelsTests.xctest";
+			"sourceTree" = "BUILT_PRODUCTS_DIR";
+		};
+		"F092A2AEBE0B8E309C3F5287" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "wrapper.framework";
+			"name" = "Foundation.framework";
+			"path" = "System/Library/Frameworks/Foundation.framework";
+			"sourceTree" = "SDKROOT";
+		};
+		"23557C6ABA05F8825F0D9AE6" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "wrapper.framework";
+			"name" = "CoreAudio.framework";
+			"path" = "System/Library/Frameworks/CoreAudio.framework";
+			"sourceTree" = "SDKROOT";
+		};
+		"C166693EA3715CCB7351B000" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "wrapper.framework";
+			"name" = "AudioToolbox.framework";
+			"path" = "System/Library/Frameworks/AudioToolbox.framework";
+			"sourceTree" = "SDKROOT";
+		};
+		"E30E9E053306AE296B1574E2" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "wrapper.framework";
+			"name" = "AudioUnit.framework";
+			"path" = "System/Library/Frameworks/AudioUnit.framework";
+			"sourceTree" = "SDKROOT";
+		};
+		"FE290F7217EDDD8F02A80DA4" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "wrapper.framework";
+			"name" = "CoreAudioKit.framework";
+			"path" = "System/Library/Frameworks/CoreAudioKit.framework";
+			"sourceTree" = "SDKROOT";
+		};
+		"8BD2FC20C69A1E6BAD334CD6" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "wrapper.framework";
+			"name" = "AppKit.framework";
+			"path" = "System/Library/Frameworks/AppKit.framework";
+			"sourceTree" = "SDKROOT";
+		};
+		"AA14C4CFC2532A538E01C6B5" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "wrapper.framework";
+			"name" = "AVFoundation.framework";
+			"path" = "System/Library/Frameworks/AVFoundation.framework";
+			"sourceTree" = "SDKROOT";
+		};
+		"885C90F66F9A72E63491669F" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "wrapper.framework";
+			"name" = "SwiftUI.framework";
+			"path" = "System/Library/Frameworks/SwiftUI.framework";
+			"sourceTree" = "SDKROOT";
+		};
+		"CAB202C368D30F9DFD99E526" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "DeskAudio";
+				"PRODUCT_MODULE_NAME" = "DeskAudio";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CODE_SIGN_IDENTITY" = "-";
+				"SWIFT_VERSION" = "5.0";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.4";
+				"SDKROOT" = "macosx";
+				"ARCHS" = "arm64";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_CXX_LANGUAGE_STANDARD" = "c++20";
+				"HEADER_SEARCH_PATHS" = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/DeskAudio/include",
+					"$(SRCROOT)/Sources/DeskAudio/VST3SDK",
+				);
+				"SWIFT_INCLUDE_PATHS" = (
+					"$(inherited)",
+					"$(BUILT_PRODUCTS_DIR)",
+				);
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"SKIP_INSTALL" = "YES";
+				"DEFINES_MODULE" = "YES";
+				"MODULEMAP_FILE" = "Sources/DeskAudio/include/module.modulemap";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+				"GCC_OPTIMIZATION_LEVEL" = "0";
+				"ENABLE_TESTABILITY" = "YES";
+			};
+		};
+		"94E406CA086006D99A688A1E" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "DeskAudio";
+				"PRODUCT_MODULE_NAME" = "DeskAudio";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CODE_SIGN_IDENTITY" = "-";
+				"SWIFT_VERSION" = "5.0";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.4";
+				"SDKROOT" = "macosx";
+				"ARCHS" = "arm64";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_CXX_LANGUAGE_STANDARD" = "c++20";
+				"HEADER_SEARCH_PATHS" = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/DeskAudio/include",
+					"$(SRCROOT)/Sources/DeskAudio/VST3SDK",
+				);
+				"SWIFT_INCLUDE_PATHS" = (
+					"$(inherited)",
+					"$(BUILT_PRODUCTS_DIR)",
+				);
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"SKIP_INSTALL" = "YES";
+				"DEFINES_MODULE" = "YES";
+				"MODULEMAP_FILE" = "Sources/DeskAudio/include/module.modulemap";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+				"GCC_OPTIMIZATION_LEVEL" = "2";
+				"ENABLE_TESTABILITY" = "NO";
+			};
+		};
+		"C1D7AB7DD182574FE6FF9D74" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = (
+				"CAB202C368D30F9DFD99E526",
+				"94E406CA086006D99A688A1E",
+			);
+			"defaultConfigurationIsVisible" = "0";
+			"defaultConfigurationName" = "Release";
+		};
+		"4B672A59FAFE993B4D99EE26" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "59B53EDD3BABC291DFA6242C";
+		};
+		"0DF8FF43B0FF88750A022FC9" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "57B5FE06EDF19D2960BF7544";
+		};
+		"BE212DB9F19D22F167825EE4" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "A6DF6AB4EAF213787ABAA4E9";
+		};
+		"81007945629269955F5D045C" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "C66C0A9D3C93F44F60F5F3D6";
+		};
+		"2C88EB735724ED38A2FA66AE" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "C25D8F527752A2476CD536C6";
+		};
+		"41BEAEA34A162081A9020A25" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "669560A5D7FEA2DB03C1F95A";
+		};
+		"72CC96FEB0BEDA47757789A3" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "7CD14FD9BDD56954FCE31222";
+		};
+		"10FB036B02937A1F93F0CFE0" = {
+			"isa" = "PBXSourcesBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+				"4B672A59FAFE993B4D99EE26",
+				"0DF8FF43B0FF88750A022FC9",
+				"BE212DB9F19D22F167825EE4",
+				"81007945629269955F5D045C",
+				"2C88EB735724ED38A2FA66AE",
+				"41BEAEA34A162081A9020A25",
+				"72CC96FEB0BEDA47757789A3",
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"054B08FAC903FDBC9DF7A0D1" = {
+			"isa" = "PBXFrameworksBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"D7911D1017449C4BC95AAF1E" = {
+			"isa" = "PBXNativeTarget";
+			"buildConfigurationList" = "C1D7AB7DD182574FE6FF9D74";
+			"buildPhases" = (
+				"10FB036B02937A1F93F0CFE0",
+				"054B08FAC903FDBC9DF7A0D1",
+			);
+			"buildRules" = (
+			);
+			"dependencies" = (
+			);
+			"name" = "DeskAudio";
+			"productName" = "DeskAudio";
+			"productReference" = "1368ED67610456A059BCBFA4";
+			"productType" = "com.apple.product-type.library.static";
+		};
+		"C494D10140E12348B9441E9B" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "DeskModels";
+				"PRODUCT_MODULE_NAME" = "DeskModels";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CODE_SIGN_IDENTITY" = "-";
+				"SWIFT_VERSION" = "5.0";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.4";
+				"SDKROOT" = "macosx";
+				"ARCHS" = "arm64";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_CXX_LANGUAGE_STANDARD" = "c++20";
+				"HEADER_SEARCH_PATHS" = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/DeskAudio/include",
+					"$(SRCROOT)/Sources/DeskAudio/VST3SDK",
+				);
+				"SWIFT_INCLUDE_PATHS" = (
+					"$(inherited)",
+					"$(BUILT_PRODUCTS_DIR)",
+				);
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"SKIP_INSTALL" = "YES";
+				"DEFINES_MODULE" = "YES";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+				"GCC_OPTIMIZATION_LEVEL" = "0";
+				"ENABLE_TESTABILITY" = "YES";
+			};
+		};
+		"5B3F9E20A75EE0544DF530BF" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "DeskModels";
+				"PRODUCT_MODULE_NAME" = "DeskModels";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CODE_SIGN_IDENTITY" = "-";
+				"SWIFT_VERSION" = "5.0";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.4";
+				"SDKROOT" = "macosx";
+				"ARCHS" = "arm64";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_CXX_LANGUAGE_STANDARD" = "c++20";
+				"HEADER_SEARCH_PATHS" = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/DeskAudio/include",
+					"$(SRCROOT)/Sources/DeskAudio/VST3SDK",
+				);
+				"SWIFT_INCLUDE_PATHS" = (
+					"$(inherited)",
+					"$(BUILT_PRODUCTS_DIR)",
+				);
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"SKIP_INSTALL" = "YES";
+				"DEFINES_MODULE" = "YES";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+				"GCC_OPTIMIZATION_LEVEL" = "2";
+				"ENABLE_TESTABILITY" = "NO";
+			};
+		};
+		"3279B4D2528E15DC25DD6568" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = (
+				"C494D10140E12348B9441E9B",
+				"5B3F9E20A75EE0544DF530BF",
+			);
+			"defaultConfigurationIsVisible" = "0";
+			"defaultConfigurationName" = "Release";
+		};
+		"7E8C8339D17C150BFBF89248" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "7C9566F52F04D4AF3A0A8198";
+		};
+		"A93A1D705375FA4DEF135DE2" = {
+			"isa" = "PBXSourcesBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+				"7E8C8339D17C150BFBF89248",
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"7AC07521F1331BA077ABD704" = {
+			"isa" = "PBXFrameworksBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"40F2CA80DA7880EE1A3CF710" = {
+			"isa" = "PBXNativeTarget";
+			"buildConfigurationList" = "3279B4D2528E15DC25DD6568";
+			"buildPhases" = (
+				"A93A1D705375FA4DEF135DE2",
+				"7AC07521F1331BA077ABD704",
+			);
+			"buildRules" = (
+			);
+			"dependencies" = (
+			);
+			"name" = "DeskModels";
+			"productName" = "DeskModels";
+			"productReference" = "39C628B9666B2BDF2116DA92";
+			"productType" = "com.apple.product-type.library.static";
+		};
+		"CABF7CDB6CC397FB90C555A3" = {
+			"isa" = "PBXContainerItemProxy";
+			"containerPortal" = "244210E48437B6556980A702";
+			"proxyType" = "1";
+			"remoteGlobalIDString" = "D7911D1017449C4BC95AAF1E";
+			"remoteInfo" = "DeskAudio";
+		};
+		"68EF418B795AF6D18BC36D79" = {
+			"isa" = "PBXTargetDependency";
+			"target" = "D7911D1017449C4BC95AAF1E";
+			"targetProxy" = "CABF7CDB6CC397FB90C555A3";
+		};
+		"D10C7EC04E5C89BD19331655" = {
+			"isa" = "PBXContainerItemProxy";
+			"containerPortal" = "244210E48437B6556980A702";
+			"proxyType" = "1";
+			"remoteGlobalIDString" = "40F2CA80DA7880EE1A3CF710";
+			"remoteInfo" = "DeskModels";
+		};
+		"91C9703964BEFA2C400E83DF" = {
+			"isa" = "PBXTargetDependency";
+			"target" = "40F2CA80DA7880EE1A3CF710";
+			"targetProxy" = "D10C7EC04E5C89BD19331655";
+		};
+		"3C4B0AB11C90F93608C34B4C" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "Mixing Desk";
+				"PRODUCT_MODULE_NAME" = "MixingDesk";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CODE_SIGN_IDENTITY" = "-";
+				"SWIFT_VERSION" = "5.0";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.4";
+				"SDKROOT" = "macosx";
+				"ARCHS" = "arm64";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_CXX_LANGUAGE_STANDARD" = "c++20";
+				"HEADER_SEARCH_PATHS" = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/DeskAudio/include",
+					"$(SRCROOT)/Sources/DeskAudio/VST3SDK",
+				);
+				"SWIFT_INCLUDE_PATHS" = (
+					"$(inherited)",
+					"$(BUILT_PRODUCTS_DIR)",
+				);
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "local.mixingdesk.app";
+				"INFOPLIST_FILE" = "Resources/Info.plist";
+				"EXECUTABLE_NAME" = "MixingDesk";
+				"LD_RUNPATH_SEARCH_PATHS" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				"OTHER_LDFLAGS" = (
+					"$(inherited)",
+					"-lc++",
+					"-ObjC",
+				);
+				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+				"GCC_OPTIMIZATION_LEVEL" = "0";
+				"ENABLE_TESTABILITY" = "YES";
+			};
+		};
+		"941D76B1C573FA9EE68F0969" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "Mixing Desk";
+				"PRODUCT_MODULE_NAME" = "MixingDesk";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CODE_SIGN_IDENTITY" = "-";
+				"SWIFT_VERSION" = "5.0";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.4";
+				"SDKROOT" = "macosx";
+				"ARCHS" = "arm64";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_CXX_LANGUAGE_STANDARD" = "c++20";
+				"HEADER_SEARCH_PATHS" = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/DeskAudio/include",
+					"$(SRCROOT)/Sources/DeskAudio/VST3SDK",
+				);
+				"SWIFT_INCLUDE_PATHS" = (
+					"$(inherited)",
+					"$(BUILT_PRODUCTS_DIR)",
+				);
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "local.mixingdesk.app";
+				"INFOPLIST_FILE" = "Resources/Info.plist";
+				"EXECUTABLE_NAME" = "MixingDesk";
+				"LD_RUNPATH_SEARCH_PATHS" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				"OTHER_LDFLAGS" = (
+					"$(inherited)",
+					"-lc++",
+					"-ObjC",
+				);
+				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+				"GCC_OPTIMIZATION_LEVEL" = "2";
+				"ENABLE_TESTABILITY" = "NO";
+			};
+		};
+		"C7C01C08469A7BE40474A671" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = (
+				"3C4B0AB11C90F93608C34B4C",
+				"941D76B1C573FA9EE68F0969",
+			);
+			"defaultConfigurationIsVisible" = "0";
+			"defaultConfigurationName" = "Release";
+		};
+		"E00E8832EA94094210C7AF4C" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "6088CAA779B770BBF8840F8D";
+		};
+		"B4CDB0BA2233E537F989C7A1" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "61034F36F2F00D312BA5485E";
+		};
+		"D4AE42E6D3E455A4FA67FB13" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "DDB621FAB836BF0AD6939741";
+		};
+		"81C11A5476F68E2264B4F44A" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "FCA260F92F9E52D56C3E8638";
+		};
+		"FEAE7DD84F1029F71AA25B4F" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "38D7459BEACB28645921A63C";
+		};
+		"1BC9150B22BE08ED9403BFED" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "FEBBEF7567C14EE39E4BD54B";
+		};
+		"38777E0AE6F226D5C7FDB3C9" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "BFBD156DE6FD4FD738A35B1A";
+		};
+		"B8EF4BB7545059002DB583DC" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "43D88039AD3231EA61DB3884";
+		};
+		"AE7D770EF5E9DB4510232AC9" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "E911FD1BFD01D09DD51FF7B7";
+		};
+		"DA37357E779D513806F50FC3" = {
+			"isa" = "PBXSourcesBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+				"E00E8832EA94094210C7AF4C",
+				"B4CDB0BA2233E537F989C7A1",
+				"D4AE42E6D3E455A4FA67FB13",
+				"81C11A5476F68E2264B4F44A",
+				"FEAE7DD84F1029F71AA25B4F",
+				"1BC9150B22BE08ED9403BFED",
+				"38777E0AE6F226D5C7FDB3C9",
+				"B8EF4BB7545059002DB583DC",
+				"AE7D770EF5E9DB4510232AC9",
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"13B1B2687BC6F72F0B4BCB0C" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "1368ED67610456A059BCBFA4";
+		};
+		"B69A4BBA5EC31B376635DA07" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "39C628B9666B2BDF2116DA92";
+		};
+		"B99CD0462F83C165BE07F83C" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "F092A2AEBE0B8E309C3F5287";
+		};
+		"42599DB1EEE9470C80D8F270" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "23557C6ABA05F8825F0D9AE6";
+		};
+		"55E5BEBFB379B2E4F5F3334E" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "C166693EA3715CCB7351B000";
+		};
+		"BC8BE090649A10C2D368331F" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "E30E9E053306AE296B1574E2";
+		};
+		"363EFFF05DF1D82F880162B4" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "FE290F7217EDDD8F02A80DA4";
+		};
+		"B8BC552266A5F23D741035EC" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "8BD2FC20C69A1E6BAD334CD6";
+		};
+		"CE0A4E761F99C7DE75901247" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "AA14C4CFC2532A538E01C6B5";
+		};
+		"3CA85262C04B1C77203A5DCF" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "885C90F66F9A72E63491669F";
+		};
+		"91371A4189BD43487D399CBF" = {
+			"isa" = "PBXFrameworksBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+				"13B1B2687BC6F72F0B4BCB0C",
+				"B69A4BBA5EC31B376635DA07",
+				"B99CD0462F83C165BE07F83C",
+				"42599DB1EEE9470C80D8F270",
+				"55E5BEBFB379B2E4F5F3334E",
+				"BC8BE090649A10C2D368331F",
+				"363EFFF05DF1D82F880162B4",
+				"B8BC552266A5F23D741035EC",
+				"CE0A4E761F99C7DE75901247",
+				"3CA85262C04B1C77203A5DCF",
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"A577AA2D2E329903309DEC77" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "0C045C78F52DBBAA710167AB";
+		};
+		"37668F045EF87FE1CF50BAF1" = {
+			"isa" = "PBXResourcesBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+				"A577AA2D2E329903309DEC77",
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"F2F255EA9C1444DE8FCCCD2A" = {
+			"isa" = "PBXNativeTarget";
+			"buildConfigurationList" = "C7C01C08469A7BE40474A671";
+			"buildPhases" = (
+				"DA37357E779D513806F50FC3",
+				"91371A4189BD43487D399CBF",
+				"37668F045EF87FE1CF50BAF1",
+			);
+			"buildRules" = (
+			);
+			"dependencies" = (
+				"68EF418B795AF6D18BC36D79",
+				"91C9703964BEFA2C400E83DF",
+			);
+			"name" = "MixingDesk";
+			"productName" = "MixingDesk";
+			"productReference" = "B11A69A124375A4F5A323332";
+			"productType" = "com.apple.product-type.application";
+		};
+		"844978EFC823FEBED18DE134" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "MixingDeskAudio";
+				"PRODUCT_MODULE_NAME" = "MixingDeskAudio";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CODE_SIGN_IDENTITY" = "-";
+				"SWIFT_VERSION" = "5.0";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.4";
+				"SDKROOT" = "macosx";
+				"ARCHS" = "arm64";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_CXX_LANGUAGE_STANDARD" = "c++20";
+				"HEADER_SEARCH_PATHS" = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/DeskAudio/include",
+					"$(SRCROOT)/Sources/DeskAudio/VST3SDK",
+				);
+				"SWIFT_INCLUDE_PATHS" = (
+					"$(inherited)",
+					"$(BUILT_PRODUCTS_DIR)",
+				);
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "local.mixingdesk.driver";
+				"INFOPLIST_FILE" = "Driver/Info.plist";
+				"WRAPPER_EXTENSION" = "driver";
+				"MACH_O_TYPE" = "mh_bundle";
+				"SKIP_INSTALL" = "YES";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+				"GCC_OPTIMIZATION_LEVEL" = "0";
+				"ENABLE_TESTABILITY" = "YES";
+			};
+		};
+		"20C3DE50DBE0061535947349" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "MixingDeskAudio";
+				"PRODUCT_MODULE_NAME" = "MixingDeskAudio";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CODE_SIGN_IDENTITY" = "-";
+				"SWIFT_VERSION" = "5.0";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.4";
+				"SDKROOT" = "macosx";
+				"ARCHS" = "arm64";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_CXX_LANGUAGE_STANDARD" = "c++20";
+				"HEADER_SEARCH_PATHS" = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/DeskAudio/include",
+					"$(SRCROOT)/Sources/DeskAudio/VST3SDK",
+				);
+				"SWIFT_INCLUDE_PATHS" = (
+					"$(inherited)",
+					"$(BUILT_PRODUCTS_DIR)",
+				);
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "local.mixingdesk.driver";
+				"INFOPLIST_FILE" = "Driver/Info.plist";
+				"WRAPPER_EXTENSION" = "driver";
+				"MACH_O_TYPE" = "mh_bundle";
+				"SKIP_INSTALL" = "YES";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+				"GCC_OPTIMIZATION_LEVEL" = "2";
+				"ENABLE_TESTABILITY" = "NO";
+			};
+		};
+		"205B9F41BF11BB565841C638" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = (
+				"844978EFC823FEBED18DE134",
+				"20C3DE50DBE0061535947349",
+			);
+			"defaultConfigurationIsVisible" = "0";
+			"defaultConfigurationName" = "Release";
+		};
+		"190D38498687D67BBE415824" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "6939255ABABCC22C5C3FE476";
+		};
+		"DB7120816894B581576C09AB" = {
+			"isa" = "PBXSourcesBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+				"190D38498687D67BBE415824",
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"0D5E0B95AC2638CEC2AB1126" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "F092A2AEBE0B8E309C3F5287";
+		};
+		"97932A4071EA25CB97BDDB80" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "23557C6ABA05F8825F0D9AE6";
+		};
+		"91E695698FC0BE172C98BF03" = {
+			"isa" = "PBXFrameworksBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+				"0D5E0B95AC2638CEC2AB1126",
+				"97932A4071EA25CB97BDDB80",
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"C8005143BCB062A8170C24E8" = {
+			"isa" = "PBXNativeTarget";
+			"buildConfigurationList" = "205B9F41BF11BB565841C638";
+			"buildPhases" = (
+				"DB7120816894B581576C09AB",
+				"91E695698FC0BE172C98BF03",
+			);
+			"buildRules" = (
+			);
+			"dependencies" = (
+			);
+			"name" = "MixingDeskAudio";
+			"productName" = "MixingDeskAudio";
+			"productReference" = "86598A674FA00314CA471D48";
+			"productType" = "com.apple.product-type.bundle";
+		};
+		"5261C018D7A2EB672EF4045C" = {
+			"isa" = "PBXContainerItemProxy";
+			"containerPortal" = "244210E48437B6556980A702";
+			"proxyType" = "1";
+			"remoteGlobalIDString" = "40F2CA80DA7880EE1A3CF710";
+			"remoteInfo" = "DeskModels";
+		};
+		"4B57AEFC477294BF3EE32164" = {
+			"isa" = "PBXTargetDependency";
+			"target" = "40F2CA80DA7880EE1A3CF710";
+			"targetProxy" = "5261C018D7A2EB672EF4045C";
+		};
+		"11C5127BD772C41418FCC6C8" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "DeskModelsTests";
+				"PRODUCT_MODULE_NAME" = "DeskModelsTests";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CODE_SIGN_IDENTITY" = "-";
+				"SWIFT_VERSION" = "5.0";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.4";
+				"SDKROOT" = "macosx";
+				"ARCHS" = "arm64";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_CXX_LANGUAGE_STANDARD" = "c++20";
+				"HEADER_SEARCH_PATHS" = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/DeskAudio/include",
+					"$(SRCROOT)/Sources/DeskAudio/VST3SDK",
+				);
+				"SWIFT_INCLUDE_PATHS" = (
+					"$(inherited)",
+					"$(BUILT_PRODUCTS_DIR)",
+				);
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "local.mixingdesk.modeltests";
+				"GENERATE_INFOPLIST_FILE" = "YES";
+				"SKIP_INSTALL" = "YES";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+				"GCC_OPTIMIZATION_LEVEL" = "0";
+				"ENABLE_TESTABILITY" = "YES";
+			};
+		};
+		"4C44EB1A76368EF249B7796D" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"buildSettings" = {
+				"PRODUCT_NAME" = "DeskModelsTests";
+				"PRODUCT_MODULE_NAME" = "DeskModelsTests";
+				"CODE_SIGN_STYLE" = "Manual";
+				"CODE_SIGN_IDENTITY" = "-";
+				"SWIFT_VERSION" = "5.0";
+				"MACOSX_DEPLOYMENT_TARGET" = "14.4";
+				"SDKROOT" = "macosx";
+				"ARCHS" = "arm64";
+				"CLANG_ENABLE_OBJC_ARC" = "YES";
+				"CLANG_CXX_LANGUAGE_STANDARD" = "c++20";
+				"HEADER_SEARCH_PATHS" = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/DeskAudio/include",
+					"$(SRCROOT)/Sources/DeskAudio/VST3SDK",
+				);
+				"SWIFT_INCLUDE_PATHS" = (
+					"$(inherited)",
+					"$(BUILT_PRODUCTS_DIR)",
+				);
+				"ENABLE_USER_SCRIPT_SANDBOXING" = "YES";
+				"PRODUCT_BUNDLE_IDENTIFIER" = "local.mixingdesk.modeltests";
+				"GENERATE_INFOPLIST_FILE" = "YES";
+				"SKIP_INSTALL" = "YES";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+				"GCC_OPTIMIZATION_LEVEL" = "2";
+				"ENABLE_TESTABILITY" = "NO";
+			};
+		};
+		"7D469C22C56AFA8275D4FA31" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = (
+				"11C5127BD772C41418FCC6C8",
+				"4C44EB1A76368EF249B7796D",
+			);
+			"defaultConfigurationIsVisible" = "0";
+			"defaultConfigurationName" = "Release";
+		};
+		"78D6518AA5F3179B4FB60914" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "C11BAB9C7892D255DEF3AD2C";
+		};
+		"2F0662D1D11CBB4B15692463" = {
+			"isa" = "PBXSourcesBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+				"78D6518AA5F3179B4FB60914",
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"7A3924D426EC1C9AC96FD339" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "39C628B9666B2BDF2116DA92";
+		};
+		"E51256A52CADD3239DCA7101" = {
+			"isa" = "PBXFrameworksBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+				"7A3924D426EC1C9AC96FD339",
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
+		"059117CF5B3ADED47DCE47AA" = {
+			"isa" = "PBXNativeTarget";
+			"buildConfigurationList" = "7D469C22C56AFA8275D4FA31";
+			"buildPhases" = (
+				"2F0662D1D11CBB4B15692463",
+				"E51256A52CADD3239DCA7101",
+			);
+			"buildRules" = (
+			);
+			"dependencies" = (
+				"4B57AEFC477294BF3EE32164",
+			);
+			"name" = "DeskModelsTests";
+			"productName" = "DeskModelsTests";
+			"productReference" = "160124633F81603977213374";
+			"productType" = "com.apple.product-type.bundle.unit-test";
+		};
+		"0A3E27B8CA818264D75C8D81" = {
+			"isa" = "PBXGroup";
+			"children" = (
+				"1368ED67610456A059BCBFA4",
+				"39C628B9666B2BDF2116DA92",
+				"B11A69A124375A4F5A323332",
+				"86598A674FA00314CA471D48",
+				"160124633F81603977213374",
+			);
+			"name" = "Products";
+			"sourceTree" = "<group>";
+		};
+		"E2AA269EB967A8853A258BFA" = {
+			"isa" = "PBXGroup";
+			"children" = (
+				"F092A2AEBE0B8E309C3F5287",
+				"23557C6ABA05F8825F0D9AE6",
+				"C166693EA3715CCB7351B000",
+				"E30E9E053306AE296B1574E2",
+				"FE290F7217EDDD8F02A80DA4",
+				"8BD2FC20C69A1E6BAD334CD6",
+				"AA14C4CFC2532A538E01C6B5",
+				"885C90F66F9A72E63491669F",
+			);
+			"name" = "Frameworks";
+			"sourceTree" = "<group>";
+		};
+		"4813494D137E1631BBA301D5" = {
+			"isa" = "PBXGroup";
+			"children" = (
+				"59B53EDD3BABC291DFA6242C",
+				"57B5FE06EDF19D2960BF7544",
+				"A6DF6AB4EAF213787ABAA4E9",
+				"C66C0A9D3C93F44F60F5F3D6",
+				"C25D8F527752A2476CD536C6",
+				"669560A5D7FEA2DB03C1F95A",
+				"7CD14FD9BDD56954FCE31222",
+				"7C9566F52F04D4AF3A0A8198",
+				"6088CAA779B770BBF8840F8D",
+				"61034F36F2F00D312BA5485E",
+				"DDB621FAB836BF0AD6939741",
+				"FCA260F92F9E52D56C3E8638",
+				"38D7459BEACB28645921A63C",
+				"FEBBEF7567C14EE39E4BD54B",
+				"BFBD156DE6FD4FD738A35B1A",
+				"43D88039AD3231EA61DB3884",
+				"E911FD1BFD01D09DD51FF7B7",
+				"6939255ABABCC22C5C3FE476",
+				"C11BAB9C7892D255DEF3AD2C",
+				"A9CBBC1DB9A05BB74306242B",
+				"BB46E8DA53AEFAEF756A7C71",
+				"69C2DD6E94F399D28BBE6CB9",
+				"F7C4AAE9ACDBE107D964E752",
+				"E481F760A8A70E87930D0970",
+				"3BA5BEE456E9C3DEDED60418",
+				"C099DC8A416099ABBC4DFC1D",
+				"4DC90B91CA90BA0366383E68",
+				"F85EEB1A1FAE3EA8C1A05898",
+				"938D73890D0BD4F0FD4C5D8D",
+				"5318E19337B000B06F194979",
+				"8F8B4E1B4D10075FC2A6B58D",
+				"7409358E0E2826BBB9CCB7D4",
+				"70A030A4B98ED3535E42AC17",
+				"9BE44F851B961DB052A58CAD",
+				"23F31C49D4CFF85E63DB54BB",
+				"2DAFA3BD893E00D98F8F3193",
+				"0C045C78F52DBBAA710167AB",
+				"E2AA269EB967A8853A258BFA",
+				"0A3E27B8CA818264D75C8D81",
+			);
+			"sourceTree" = "<group>";
+		};
+		"184B519F8E1416CCE38CFFD7" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Debug";
+			"buildSettings" = {
+				"CLANG_ENABLE_MODULES" = "YES";
+				"CLANG_WARN_DOCUMENTATION_COMMENTS" = "YES";
+				"GCC_WARN_64_TO_32_BIT_CONVERSION" = "YES";
+				"SWIFT_STRICT_CONCURRENCY" = "targeted";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-Onone";
+				"GCC_OPTIMIZATION_LEVEL" = "0";
+				"ENABLE_TESTABILITY" = "YES";
+			};
+		};
+		"A824290273A346217D9BE6F4" = {
+			"isa" = "XCBuildConfiguration";
+			"name" = "Release";
+			"buildSettings" = {
+				"CLANG_ENABLE_MODULES" = "YES";
+				"CLANG_WARN_DOCUMENTATION_COMMENTS" = "YES";
+				"GCC_WARN_64_TO_32_BIT_CONVERSION" = "YES";
+				"SWIFT_STRICT_CONCURRENCY" = "targeted";
+				"SWIFT_OPTIMIZATION_LEVEL" = "-O";
+				"GCC_OPTIMIZATION_LEVEL" = "2";
+				"ENABLE_TESTABILITY" = "NO";
+			};
+		};
+		"1922B098E983995960BE56B0" = {
+			"isa" = "XCConfigurationList";
+			"buildConfigurations" = (
+				"184B519F8E1416CCE38CFFD7",
+				"A824290273A346217D9BE6F4",
+			);
+			"defaultConfigurationIsVisible" = "0";
+			"defaultConfigurationName" = "Release";
+		};
+		"244210E48437B6556980A702" = {
+			"isa" = "PBXProject";
+			"attributes" = {
+				"LastUpgradeCheck" = "1600";
+				"BuildIndependentTargetsInParallel" = "YES";
+			};
+			"buildConfigurationList" = "1922B098E983995960BE56B0";
+			"compatibilityVersion" = "Xcode 14.0";
+			"developmentRegion" = "en";
+			"hasScannedForEncodings" = "0";
+			"knownRegions" = (
+				"en",
+				"Base",
+			);
+			"mainGroup" = "4813494D137E1631BBA301D5";
+			"productRefGroup" = "0A3E27B8CA818264D75C8D81";
+			"projectDirPath" = "";
+			"projectRoot" = "";
+			"targets" = (
+				"D7911D1017449C4BC95AAF1E",
+				"40F2CA80DA7880EE1A3CF710",
+				"F2F255EA9C1444DE8FCCCD2A",
+				"C8005143BCB062A8170C24E8",
+				"059117CF5B3ADED47DCE47AA",
+			);
+		};
+	};
+	"rootObject" = "244210E48437B6556980A702";
+}

@@ -1,0 +1,4 @@
+module DeskAudio {
+    header "DeskAudio.h"
+    export *
+}
