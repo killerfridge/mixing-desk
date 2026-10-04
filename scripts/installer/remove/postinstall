@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+source "$(dirname "$0")/common.sh"
+desk_check_install "$@"
+desk_backup_driver remove
+/usr/sbin/pkgutil --forget local.mixingdesk.pkg.driver >/dev/null 2>&1 || true
+echo 'Restart your Mac to finish removing Mixing Desk Audio. Your app, sessions, presets, and saved virtual-device configuration have been preserved.'

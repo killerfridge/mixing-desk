@@ -6,8 +6,9 @@
 <key>CFBundleDisplayName</key><string>Mixing Desk</string>
 <key>CFBundleExecutable</key><string>MixingDesk</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleVersion</key><string>7</string>
-<key>CFBundleShortVersionString</key><string>0.4.1</string>
+<key>CFBundleVersion</key><string>8</string>
+<key>CFBundleShortVersionString</key><string>0.5.0</string>
+<key>CFBundleIconFile</key><string>MixingDesk</string>
 <key>LSMinimumSystemVersion</key><string>14.4</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSMicrophoneUsageDescription</key><string>Mixing Desk routes your microphone and instrument audio to the mixes you choose.</string>

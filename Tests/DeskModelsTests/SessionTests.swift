@@ -4,6 +4,9 @@ import XCTest
 final class SessionTests: XCTestCase {
     func testStarterSessionRoundTrip() throws {
         let session = Session.starter()
+        XCTAssertEqual(session.strips.count, 3)
+        XCTAssertTrue(session.monitorDeviceUID.isEmpty && session.routes.isEmpty)
+        XCTAssertTrue(session.strips.allSatisfy { $0.source.deviceUID.isEmpty && $0.source.bundleID.isEmpty })
         XCTAssertEqual(try Session.decode(session.data()), session)
         XCTAssertEqual(session.buses.first { $0.kind == "call" }?.excludedStripID, session.strips.first { $0.role == "callReturn" }?.id)
     }
@@ -16,7 +19,7 @@ final class SessionTests: XCTestCase {
     }
     func testRejectsDuplicateCapture() {
         var session = Session.starter()
-        session.strips[0].source.returnBundleID = "us.zoom.xos"
+        session.strips[2].source.bundleID = "us.zoom.xos"; session.strips[0].source.returnBundleID = "us.zoom.xos"
         XCTAssertThrowsError(try session.validated())
     }
     func testRejectsUnknownVersionAndInvalidNumbers() {
@@ -30,7 +33,7 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(try Session.decode(session.data()).strips[0].source.deviceUID, "unplugged-rode")
     }
     func testRemovingSourceCleansReferences() throws {
-        var session = Session.starter(); let caller = session.strips[3].id
+        var session = Session.starter(); let caller = session.strips[2].id
         session.routes.append(OutputRoute(sourceKind: "strip", sourceID: caller, destinationUID: "offline"))
         session.removeStrip(caller)
         XCTAssertTrue(session.routes.isEmpty)

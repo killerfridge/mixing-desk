@@ -1,0 +1,46 @@
+name: Build and test
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: false
+        default: ''
+permissions:
+  contents: read
+jobs:
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-26]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.ref || github.ref }}
+      - name: Confirm architecture and audit source
+        run: |
+          test "$(uname -m)" = arm64
+          python3 scripts/audit-source.py
+      - name: Verify generated project
+        run: |
+          python3 scripts/generate-project.py
+          git diff --exit-code -- MixingDesk.xcodeproj
+      - name: Native build and regression suite
+        run: |
+          ./scripts/build.sh
+          ./scripts/test.sh --soak
+      - name: Xcode build and XCTest
+        run: xcodebuild -project MixingDesk.xcodeproj -scheme MixingDesk -configuration Release -destination 'platform=macOS,arch=arm64' -derivedDataPath build/Xcode build test CODE_SIGN_IDENTITY=-
+      - name: Verify release packaging without installing
+        run: python3 scripts/package-release.py --skip-build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experimental-packages-${{ matrix.os }}
+          path: build/release/
+          retention-days: 14

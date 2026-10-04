@@ -1,0 +1,45 @@
+name: Prepare draft release
+on:
+  push:
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag matching release/version.txt
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ inputs.tag || github.ref }}
+  draft:
+    needs: checks
+    runs-on: macos-14
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      - name: Build exact tagged artifacts
+        run: python3 scripts/package-release.py --verify-tag
+      - name: Create draft only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(cat release/version.txt)"
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo 'A release already exists for this tag; do not overwrite tested assets. Use a new beta tag.' >&2
+            exit 1
+          fi
+          flags=(--draft --verify-tag)
+          if [[ "$version" == *-beta.* ]]; then flags+=(--prerelease); fi
+          gh release create "$tag" "${flags[@]}" --title "Mixing Desk $version" --notes-file "docs/releases/$version.md" build/release/"$version"/*

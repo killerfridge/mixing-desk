@@ -11,11 +11,9 @@ fi
 if [[ "$EUID" -ne 0 ]]; then printf 'Run this installer with sudo after building the project.\n' >&2; exit 1; fi
 if [[ ! -f "$desk_source/Contents/MacOS/MixingDeskAudio" ]]; then printf 'Build the driver with scripts/build.sh first.\n' >&2; exit 1; fi
 codesign --verify --strict "$desk_source"
-if [[ -e "$desk_destination" ]]; then
-    desk_backup="/Library/Audio/Plug-Ins/HAL/MixingDeskAudio.previous-$(date +%Y%m%d-%H%M%S)"
-    mv "$desk_destination" "$desk_backup"
-    printf 'Previous driver backed up at %s\n' "$desk_backup"
-fi
+source "$desk_root/scripts/installer/common.sh"
+desk_check_install
+desk_backup_driver copy
 ditto "$desk_source" "$desk_destination"
 chown -R root:wheel "$desk_destination"
 chmod -R go-w "$desk_destination"
