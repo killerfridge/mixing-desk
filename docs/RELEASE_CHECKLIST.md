@@ -54,7 +54,7 @@ Append dated results with exact versions, checksums, and links to CI runs or loc
 
 ### 2026-10-04 — automated candidate verification
 
-Tag `v0.5.0-beta.1`, commit `dc8295fb055722f8d281c1e2430bbc815f4e2277`: [tagged CI and draft preparation passed](https://github.com/killerfridge/mixing-desk/actions/runs/37192603741) on Apple Silicon macOS 14 and macOS 26. App 0.5.0/build 10; driver 0.1.1/build 2. The [draft prerelease](https://github.com/killerfridge/mixing-desk/releases/tag/untagged-32b4c201b91f6dd7cf8d) is unpublished. Authenticated downloads of all five uploaded assets match GitHub's digests and pass local package verification. No installer was executed, and no browser approval, reboot, or physical audio acceptance is claimed.
+Tag `v0.5.0-beta.1`, commit `dc8295fb055722f8d281c1e2430bbc815f4e2277`: [tagged CI and draft preparation passed](https://github.com/killerfridge/mixing-desk/actions/runs/37192603741) on Apple Silicon macOS 14 and macOS 26. App 0.5.0/build 10; driver 0.1.1/build 2. The [draft prerelease](https://github.com/killerfridge/mixing-desk/releases) is unpublished. Authenticated downloads of all five uploaded assets match GitHub's digests and pass local package verification. No installer was executed, and no browser approval, reboot, or physical audio acceptance is claimed.
 
 Use these exact draft assets for acceptance testing; locally rebuilt packages may have different bytes.
 
