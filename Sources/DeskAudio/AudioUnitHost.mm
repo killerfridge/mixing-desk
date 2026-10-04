@@ -15,6 +15,10 @@
 
 namespace {
 constexpr UInt32 Capacity=4096;
+void onMainThread(dispatch_block_t action) {
+    if(NSThread.isMainThread)action();
+    else dispatch_sync(dispatch_get_main_queue(),action);
+}
 NSString* componentID(AudioComponentDescription d) {
     return [NSString stringWithFormat:@"%08x:%08x:%08x",(unsigned)d.componentType,(unsigned)d.componentSubType,(unsigned)d.componentManufacturer];
 }
@@ -53,6 +57,9 @@ class AudioUnitProcessor final : public desk::HostedProcessor {
     }
 public:
     AudioUnitProcessor(NSString* identifier,NSData* state,bool mono):mono_(mono) {
+        // AU constructors can initialize a vendor's UI/message-thread runtime,
+        // even before an editor is requested. Do not bind it to our control queue.
+        onMainThread(^{
         try {
             AudioComponentDescription d{};
             if(!description(identifier,d))throw std::runtime_error("Invalid Audio Unit identifier");
@@ -68,8 +75,9 @@ public:
             failure=[NSString stringWithUTF8String:e.what()];mix_=1;
             if(unit_){AudioUnitUninitialize(unit_);AudioComponentInstanceDispose(unit_);unit_=nullptr;}
         }
+        });
     }
-    ~AudioUnitProcessor() { if(unit_){AudioUnitUninitialize(unit_);AudioComponentInstanceDispose(unit_);} }
+    ~AudioUnitProcessor() { onMainThread(^{if(unit_){AudioUnitUninitialize(unit_);AudioComponentInstanceDispose(unit_);}}); }
     bool available()const override {return unit_!=nullptr;}
     NSView* makeView() override;
     bool monoInput()const override {return inputChannels_==1;}

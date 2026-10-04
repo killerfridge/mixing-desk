@@ -8,7 +8,7 @@ import DeskModels
         app.setActivationPolicy(.accessory)
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent("MixingDesk-Documentation-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: temporary) }
-        let store = DeskStore(supportDirectory: temporary, discover: false)
+        let store = DeskStore(startsMonitoring: false, supportDirectory: temporary)
         precondition(store.showingSetupGuide && !store.running && !store.wantsRunning)
         precondition(store.session.monitorDeviceUID.isEmpty && store.session.routes.isEmpty)
 
@@ -20,7 +20,7 @@ import DeskModels
         saved.monitorDeviceUID = "offline-output"
         saved.routes = [OutputRoute(sourceID: saved.buses[0].id, destinationUID: saved.monitorDeviceUID)]
         store.session = saved; store.saveLastSession()
-        let restored = DeskStore(supportDirectory: temporary, discover: false)
+        let restored = DeskStore(startsMonitoring: false, supportDirectory: temporary)
         precondition(!restored.showingSetupGuide && restored.session == saved && !restored.wantsRunning)
 
         let mono = Device(["uid": "mono", "name": "Mono output", "outputs": ["Output"], "supports48k": true])

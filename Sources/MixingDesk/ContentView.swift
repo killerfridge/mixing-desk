@@ -91,8 +91,7 @@ struct ContentView: View {
             Text(store.info).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             Spacer()
             if store.running {
-                Text(String(format: "DSP %.1f%%", store.load*100))
-                Text("\(store.underruns) overruns").foregroundStyle(store.underruns > 0 ? .orange : .secondary)
+                EngineLoadView(readings: store.engineLoad)
                 Text(String(format: "~%.1f ms estimated", store.estimatedLatency + store.maximumPluginLatencyMS)).help("Core Audio estimate plus the longest active channel and output-bus plugin chains. This is not a measured round-trip latency; parallel paths are not delay-compensated.")
             } else { Text("LOCAL AUDIO ENGINE") }
         }.font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).padding(.horizontal, 24).padding(.vertical, 12).background(DeskStyle.panel)
@@ -176,7 +175,7 @@ struct ChannelStripView: View {
             }
             HStack(spacing: 18) {
                 Fader(value: $strip.faderDB, tint: accent).frame(width: 72, height: faderHeight)
-                LevelMeter(value: store.meterForStrip(strip.id)).frame(width: 30, height: faderHeight)
+                LiveLevelMeter(readings: store.meters, index: store.session.strips.firstIndex(where: { $0.id == strip.id }), isBus: false, running: store.running).frame(width: 30, height: faderHeight)
             }.frame(maxWidth: .infinity).padding(.vertical, 4)
             Text(strip.faderDB <= -90 ? "−∞ dB" : String(format: "%+.1f dB", strip.faderDB)).font(.system(size: 18, weight: .medium, design: .monospaced)).foregroundStyle(strip.muted ? .secondary : .primary)
             VStack(spacing: 2) {
@@ -220,7 +219,7 @@ struct BusStripView: View {
             Text(bus.kind == "monitor" ? "HEADPHONE MIX" : bus.kind == "call" ? "MIX-MINUS" : "OUTPUT BUS").font(.system(size: 9, weight: .medium)).tracking(1).foregroundStyle(DeskStyle.accent)
             InsertButton(inserts: bus.inserts) { editingInserts = true }
             ToggleButton(label: "MUTE", active: $bus.muted, color: .red)
-            HStack(spacing: 18) { Fader(value: $bus.gainDB, tint: DeskStyle.accent).frame(width: 68, height: faderHeight); LevelMeter(value: store.meterForBus(bus.id)).frame(width: 28, height: faderHeight) }.padding(.vertical, 4)
+            HStack(spacing: 18) { Fader(value: $bus.gainDB, tint: DeskStyle.accent).frame(width: 68, height: faderHeight); LiveLevelMeter(readings: store.meters, index: store.session.buses.firstIndex(where: { $0.id == bus.id }), isBus: true, running: store.running).frame(width: 28, height: faderHeight) }.padding(.vertical, 4)
             Text(bus.gainDB <= -90 ? "−∞ dB" : String(format: "%+.1f dB", bus.gainDB)).font(.system(size: 18, weight: .medium, design: .monospaced))
             if bus.kind == "call" {
                 VStack(alignment: .leading, spacing: 5) {
@@ -239,6 +238,25 @@ struct BusStripView: View {
         }.padding(compact ? 10 : 13).background(DeskStyle.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).stroke(DeskStyle.accent.opacity(0.14)))
             .sheet(isPresented: $editingInserts) { InsertEditor(inserts: $bus.inserts, ownerName: bus.name, isBus: true) }
     }
+}
+private struct EngineLoadView: View {
+    @ObservedObject var readings: DeskLoad
+    var body: some View {
+        Text(String(format: "DSP %.1f%%", readings.value.load*100))
+        Text("\(readings.value.underruns) overruns").foregroundStyle(readings.value.underruns > 0 ? .orange : .secondary)
+    }
+}
+private struct LiveLevelMeter: View {
+    @ObservedObject var readings: DeskMeters
+    let index: Int?
+    let isBus: Bool
+    let running: Bool
+    private var value: MeterValue {
+        let values = isBus ? readings.value.buses : readings.value.strips
+        guard running, let index, values.indices.contains(index) else { return MeterValue() }
+        return values[index]
+    }
+    var body: some View { LevelMeter(value: value) }
 }
 struct ToggleButton: View {
     let label: String; @Binding var active: Bool; var color: Color

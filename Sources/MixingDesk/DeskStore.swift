@@ -6,13 +6,13 @@ import AVFoundation
 import DeskModels
 import UniformTypeIdentifiers
 
-struct Device: Identifiable {
+struct Device: Identifiable, Equatable {
     var id: String { uid }; let uid: String; let name: String; let inputs: [String]; let outputs: [String]; let supports48k: Bool; let minBuffer: Int; let maxBuffer: Int
     init(_ d: [String: Any]) { uid = d["uid"] as? String ?? ""; name = d["name"] as? String ?? "Device"; inputs = d["inputs"] as? [String] ?? []; outputs = d["outputs"] as? [String] ?? []; supports48k = d["supports48k"] as? Bool ?? false; minBuffer = (d["minBuffer"] as? NSNumber)?.intValue ?? 32; maxBuffer = (d["maxBuffer"] as? NSNumber)?.intValue ?? 4096 }
 }
-struct AudioApplication: Identifiable { var id: String { bundleID }; let bundleID: String; let name: String; let processIDs: [Int] }
-struct VirtualDevice: Identifiable { var id: String { uid }; let uid: String; var name: String; let channels: Int; let clients: Int }
-struct DriverStatus {
+struct AudioApplication: Identifiable, Equatable { var id: String { bundleID }; let bundleID: String; let name: String; let processIDs: [Int] }
+struct VirtualDevice: Identifiable, Equatable { var id: String { uid }; let uid: String; var name: String; let channels: Int; let clients: Int }
+struct DriverStatus: Equatable {
     var state = "missing"
     var message = "Checking the optional virtual-audio driver…"
     var installedBuild = 0
@@ -25,12 +25,31 @@ struct DriverStatus {
         loadedBuild = (data["loadedBuild"] as? NSNumber)?.intValue ?? 0
     }
 }
-struct ClockMember: Identifiable {
+struct ClockMember: Identifiable, Equatable {
     var id: String { uid }; let uid: String; let name: String; let corrected: Bool
     init(_ data: [String: Any]) { uid = data["uid"] as? String ?? ""; name = data["name"] as? String ?? "Audio source"; corrected = (data["driftCorrection"] as? NSNumber)?.intValue == 1 }
 }
-struct MeterValue { var peakL: Float = 0; var peakR: Float = 0; var rmsL: Float = 0; var rmsR: Float = 0; var clip = false
+struct MeterValue: Equatable { var peakL: Float = 0; var peakR: Float = 0; var rmsL: Float = 0; var rmsR: Float = 0; var clip = false
     init(_ data: [String: Any] = [:]) { peakL = (data["peakL"] as? NSNumber)?.floatValue ?? 0; peakR = (data["peakR"] as? NSNumber)?.floatValue ?? 0; rmsL = (data["rmsL"] as? NSNumber)?.floatValue ?? 0; rmsR = (data["rmsR"] as? NSNumber)?.floatValue ?? 0; clip = data["clip"] as? Bool ?? false }
+}
+struct MeterSnapshot: Equatable {
+    var strips: [MeterValue] = []
+    var buses: [MeterValue] = []
+}
+// High-frequency readings have their own observers. Publishing these on
+// DeskStore invalidates every strip, sheet, app scene, and menu at meter rate,
+// taking main-thread time away from native plugin editors.
+@MainActor final class DeskMeters: ObservableObject {
+    @Published private(set) var value = MeterSnapshot()
+    func update(_ next: MeterSnapshot) { if value != next { value = next } }
+}
+struct LoadSnapshot: Equatable {
+    var load: Double = 0
+    var underruns = 0
+}
+@MainActor final class DeskLoad: ObservableObject {
+    @Published private(set) var value = LoadSnapshot()
+    func update(_ next: LoadSnapshot) { if value != next { value = next } }
 }
 @MainActor final class DeskStore: ObservableObject {
     @Published var session: Session
@@ -44,10 +63,8 @@ struct MeterValue { var peakL: Float = 0; var peakR: Float = 0; var rmsL: Float 
     @Published var configuring = false
     @Published var error: String?
     @Published var info = "Choose your USB inputs and headphone output to begin."
-    @Published var stripMeters: [MeterValue] = []
-    @Published var busMeters: [MeterValue] = []
-    @Published var load: Double = 0
-    @Published var underruns = 0
+    let meters = DeskMeters()
+    let engineLoad = DeskLoad()
     @Published var actualFrames = 128
     @Published var estimatedLatency: Double = 0
     @Published var offline: [String] = []
@@ -79,18 +96,18 @@ struct MeterValue { var peakL: Float = 0; var peakR: Float = 0; var rmsL: Float 
     private var requestingAudioAccess = false
     private var observers: [NSObjectProtocol] = []
     private let support: URL
-    init(supportDirectory: URL? = nil, discover: Bool = true) {
+    init(initialSession: Session? = nil, startsMonitoring: Bool = true, supportDirectory: URL? = nil) {
         support = supportDirectory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Mixing Desk", isDirectory: true)
         let saved = support.appendingPathComponent("Last Session.json")
-        showingSetupGuide = !FileManager.default.fileExists(atPath: saved.path)
+        showingSetupGuide = initialSession == nil && !FileManager.default.fileExists(atPath: saved.path)
         let initial: Session
-        do { if FileManager.default.fileExists(atPath: saved.path) { initial = try Session.decode(Data(contentsOf: saved)) } else { initial = .starter() } }
+        do { if let initialSession { initial = initialSession } else if FileManager.default.fileExists(atPath: saved.path) { initial = try Session.decode(Data(contentsOf: saved)) } else { initial = .starter() } }
         catch { initial = .starter(); preserveUnreadableSession = true; self.error = "Last session could not be opened: \(error.localizedDescription). The original will be kept as a backup before saving a new session." }
         session = initial; lastApplied = initial
-        refreshPresets()
         // The documentation renderer supplies an isolated support directory and
         // disables discovery/timers; normal app instances always discover audio.
-        guard discover else { return }
+        guard startsMonitoring else { return }
+        refreshPresets()
         refreshDiscovery()
         meterTimer = Timer.scheduledTimer(withTimeInterval: 1.0/30, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.poll() } }
         discoveryTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.refreshDiscovery(); if self?.pluginWindows.isEmpty == false { self?.capturePluginStates() } } }
@@ -107,10 +124,14 @@ struct MeterValue { var peakL: Float = 0; var peakR: Float = 0; var rmsL: Float 
                 guard let self else { return }; self.discovering = false
                 let selectedBundles = Set(self.session.strips.filter { $0.source.kind == "application" }.map { $0.source.bundleID })
                 let previous = self.apps.filter { selectedBundles.contains($0.bundleID) }.map { "\($0.bundleID):\($0.processIDs)" }
-                self.devices = deviceData.map(Device.init)
-                self.apps = appData.map { AudioApplication(bundleID: $0["bundleID"] as? String ?? "", name: $0["name"] as? String ?? "App", processIDs: $0["processIDs"] as? [Int] ?? []) }
-                self.virtualDevices = virtualData.map { VirtualDevice(uid: $0["uid"] as? String ?? "", name: $0["name"] as? String ?? "", channels: ($0["channels"] as? NSNumber)?.intValue ?? 2, clients: ($0["clients"] as? NSNumber)?.intValue ?? 0) }
-                self.driverStatus = DriverStatus(driverData)
+                let devices = deviceData.map(Device.init)
+                let apps = appData.map { AudioApplication(bundleID: $0["bundleID"] as? String ?? "", name: $0["name"] as? String ?? "App", processIDs: $0["processIDs"] as? [Int] ?? []) }
+                let virtualDevices = virtualData.map { VirtualDevice(uid: $0["uid"] as? String ?? "", name: $0["name"] as? String ?? "", channels: ($0["channels"] as? NSNumber)?.intValue ?? 2, clients: ($0["clients"] as? NSNumber)?.intValue ?? 0) }
+                if self.devices != devices { self.devices = devices }
+                if self.apps != apps { self.apps = apps }
+                if self.virtualDevices != virtualDevices { self.virtualDevices = virtualDevices }
+                let driverStatus = DriverStatus(driverData)
+                if self.driverStatus != driverStatus { self.driverStatus = driverStatus }
                 if self.wantsRunning && !self.suspended && !self.configuring {
                     if !self.devices.contains(where: { $0.uid == self.session.monitorDeviceUID }) { self.stopAudio(); self.info = "Monitor disconnected. Waiting for the same device; speakers will not be used." }
                     else if !self.running || previous != self.apps.filter({ selectedBundles.contains($0.bundleID) }).map({ "\($0.bundleID):\($0.processIDs)" }) { self.scheduleRestart() }
@@ -126,19 +147,29 @@ struct MeterValue { var peakL: Float = 0; var peakR: Float = 0; var rmsL: Float 
             DispatchQueue.main.async {
                 guard let self else { return }; self.polling = false
                 guard !self.configuring else { return }
-                self.running = self.wantsRunning && (status["running"] as? Bool ?? false)
-                self.stripMeters = (status["strips"] as? [[String: Any]] ?? []).map(MeterValue.init)
-                self.busMeters = (status["buses"] as? [[String: Any]] ?? []).map(MeterValue.init)
-                self.load = (status["load"] as? NSNumber)?.doubleValue ?? 0
-                self.underruns = (status["underruns"] as? NSNumber)?.intValue ?? 0
-                self.actualFrames = (status["bufferFrames"] as? NSNumber)?.intValue ?? 128
-                self.estimatedLatency = (status["estimatedLatencyMs"] as? NSNumber)?.doubleValue ?? 0
-                self.offline = status["offline"] as? [String] ?? []
-                self.pluginStatus = Dictionary(uniqueKeysWithValues: (status["plugins"] as? [[String: Any]] ?? []).compactMap { item in (item["id"] as? String).map { ($0, item) } })
-                self.clockMembers = (status["synchronization"] as? [[String: Any]] ?? []).map(ClockMember.init)
-                if status["hardwareChanged"] as? Bool == true && self.wantsRunning { self.scheduleRestart() }
+                self.receiveStatus(status)
             }
         }
+    }
+    func receiveStatus(_ status: [String: Any]) {
+        let running = wantsRunning && (status["running"] as? Bool ?? false)
+        if self.running != running { self.running = running }
+        meters.update(running ? MeterSnapshot(
+            strips: (status["strips"] as? [[String: Any]] ?? []).map(MeterValue.init),
+            buses: (status["buses"] as? [[String: Any]] ?? []).map(MeterValue.init)) : MeterSnapshot())
+        engineLoad.update(LoadSnapshot(load: (status["load"] as? NSNumber)?.doubleValue ?? 0,
+                                       underruns: (status["underruns"] as? NSNumber)?.intValue ?? 0))
+        let frames = (status["bufferFrames"] as? NSNumber)?.intValue ?? 128
+        let latency = (status["estimatedLatencyMs"] as? NSNumber)?.doubleValue ?? 0
+        let offline = status["offline"] as? [String] ?? []
+        let plugins = Dictionary(uniqueKeysWithValues: (status["plugins"] as? [[String: Any]] ?? []).compactMap { item in (item["id"] as? String).map { ($0, item) } })
+        let clocks = (status["synchronization"] as? [[String: Any]] ?? []).map(ClockMember.init)
+        if actualFrames != frames { actualFrames = frames }
+        if estimatedLatency != latency { estimatedLatency = latency }
+        if self.offline != offline { self.offline = offline }
+        if !NSDictionary(dictionary: pluginStatus).isEqual(to: plugins) { pluginStatus = plugins }
+        if clockMembers != clocks { clockMembers = clocks }
+        if status["hardwareChanged"] as? Bool == true && wantsRunning { scheduleRestart() }
     }
     func scheduleRestart() {
         guard wantsRunning, !suspended, !recovering else { return }
@@ -237,8 +268,6 @@ struct MeterValue { var peakL: Float = 0; var peakR: Float = 0; var rmsL: Float 
         return devices.first { $0.uid == source.deviceUID }?.name ?? (source.deviceUID.isEmpty ? "Choose input" : "Input offline")
     }
     func sourceOnline(_ source: SourceBinding) -> Bool { source.kind == "application" ? apps.contains { $0.bundleID == source.bundleID } : devices.contains { $0.uid == source.deviceUID } }
-    func meterForStrip(_ id: String) -> MeterValue { guard running, let i = session.strips.firstIndex(where: { $0.id == id }), i < stripMeters.count else { return MeterValue() }; return stripMeters[i] }
-    func meterForBus(_ id: String) -> MeterValue { guard running, let i = session.buses.firstIndex(where: { $0.id == id }), i < busMeters.count else { return MeterValue() }; return busMeters[i] }
     func scanPlugins() {
         guard !scanningPlugins else { return }; scanningPlugins = true
         audioQueue.async { [weak self] in
