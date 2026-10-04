@@ -1,5 +1,5 @@
 import XCTest
-@testable import DeskModels
+import DeskModels
 
 final class SessionTests: XCTestCase {
     func testStarterSessionRoundTrip() throws {

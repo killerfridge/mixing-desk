@@ -9,7 +9,7 @@ for desk_source in Sources/MixingDesk/*.swift; do
     [[ "$desk_source" == */MixingDeskApp.swift ]] || desk_sources+=("$desk_source")
 done
 xcrun swiftc -parse-as-library -target arm64-apple-macos14.4 -module-cache-path .build/ModuleCache \
-    -I "$desk_bin/Modules" -I Sources/DeskAudio/include \
+    -I "$desk_bin/Modules" -I "$desk_bin" -I Sources/DeskAudio/include \
     "${desk_sources[@]}" Tests/AppScreenshots.swift \
     "$desk_bin"/DeskModels.build/*.o "$desk_bin"/DeskAudio.build/*.o "$desk_bin"/DeskAudio.build/VST3SDK/pluginterfaces/base/*.o \
     -lc++ -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreAudioKit -framework AppKit \
