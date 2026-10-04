@@ -12,6 +12,19 @@ struct Device: Identifiable, Equatable {
 }
 struct AudioApplication: Identifiable, Equatable { var id: String { bundleID }; let bundleID: String; let name: String; let processIDs: [Int] }
 struct VirtualDevice: Identifiable, Equatable { var id: String { uid }; let uid: String; var name: String; let channels: Int; let clients: Int }
+struct DriverStatus: Equatable {
+    var state = "missing"
+    var message = "Checking the optional virtual-audio driver…"
+    var installedBuild = 0
+    var loadedBuild = 0
+    var ready: Bool { state == "ready" }
+    init(_ data: [String: Any] = [:]) {
+        state = data["state"] as? String ?? "missing"
+        message = data["message"] as? String ?? message
+        installedBuild = (data["installedBuild"] as? NSNumber)?.intValue ?? 0
+        loadedBuild = (data["loadedBuild"] as? NSNumber)?.intValue ?? 0
+    }
+}
 struct ClockMember: Identifiable, Equatable {
     var id: String { uid }; let uid: String; let name: String; let corrected: Bool
     init(_ data: [String: Any]) { uid = data["uid"] as? String ?? ""; name = data["name"] as? String ?? "Audio source"; corrected = (data["driftCorrection"] as? NSNumber)?.intValue == 1 }
@@ -43,6 +56,8 @@ struct LoadSnapshot: Equatable {
     @Published var devices: [Device] = []
     @Published var apps: [AudioApplication] = []
     @Published var virtualDevices: [VirtualDevice] = []
+    @Published var driverStatus = DriverStatus()
+    @Published var showingSetupGuide = false
     @Published var running = false
     @Published var wantsRunning = false
     @Published var configuring = false
@@ -81,15 +96,19 @@ struct LoadSnapshot: Equatable {
     private var requestingAudioAccess = false
     private var observers: [NSObjectProtocol] = []
     private let support: URL
-    init(initialSession: Session? = nil, startsMonitoring: Bool = true) {
-        support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Mixing Desk", isDirectory: true)
+    init(initialSession: Session? = nil, startsMonitoring: Bool = true, supportDirectory: URL? = nil) {
+        support = supportDirectory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Mixing Desk", isDirectory: true)
         let saved = support.appendingPathComponent("Last Session.json")
+        showingSetupGuide = initialSession == nil && !FileManager.default.fileExists(atPath: saved.path)
         let initial: Session
         do { if let initialSession { initial = initialSession } else if FileManager.default.fileExists(atPath: saved.path) { initial = try Session.decode(Data(contentsOf: saved)) } else { initial = .starter() } }
         catch { initial = .starter(); preserveUnreadableSession = true; self.error = "Last session could not be opened: \(error.localizedDescription). The original will be kept as a backup before saving a new session." }
         session = initial; lastApplied = initial
+        // The documentation renderer supplies an isolated support directory and
+        // disables discovery/timers; normal app instances always discover audio.
         guard startsMonitoring else { return }
-        refreshDiscovery(); refreshPresets()
+        refreshPresets()
+        refreshDiscovery()
         meterTimer = Timer.scheduledTimer(withTimeInterval: 1.0/30, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.poll() } }
         discoveryTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.refreshDiscovery(); if self?.pluginWindows.isEmpty == false { self?.capturePluginStates() } } }
         let center = NSWorkspace.shared.notificationCenter
@@ -100,7 +119,7 @@ struct LoadSnapshot: Equatable {
         guard !discovering else { return }; discovering = true
         let audio = audio
         audioQueue.async { [weak self] in
-            let deviceData = audio.devices(), appData = audio.applications(), virtualData = audio.virtualDevices()
+            let deviceData = audio.devices(), appData = audio.applications(), virtualData = audio.virtualDevices(), driverData = audio.driverStatus()
             DispatchQueue.main.async {
                 guard let self else { return }; self.discovering = false
                 let selectedBundles = Set(self.session.strips.filter { $0.source.kind == "application" }.map { $0.source.bundleID })
@@ -111,6 +130,8 @@ struct LoadSnapshot: Equatable {
                 if self.devices != devices { self.devices = devices }
                 if self.apps != apps { self.apps = apps }
                 if self.virtualDevices != virtualDevices { self.virtualDevices = virtualDevices }
+                let driverStatus = DriverStatus(driverData)
+                if self.driverStatus != driverStatus { self.driverStatus = driverStatus }
                 if self.wantsRunning && !self.suspended && !self.configuring {
                     if !self.devices.contains(where: { $0.uid == self.session.monitorDeviceUID }) { self.stopAudio(); self.info = "Monitor disconnected. Waiting for the same device; speakers will not be used." }
                     else if !self.running || previous != self.apps.filter({ selectedBundles.contains($0.bundleID) }).map({ "\($0.bundleID):\($0.processIDs)" }) { self.scheduleRestart() }
@@ -161,6 +182,10 @@ struct LoadSnapshot: Equatable {
     }
     func toggleAudio() {
         if wantsRunning { wantsRunning = false; stopAudio(); info = "Audio stopped."; return }
+        guard devices.contains(where: { $0.uid == session.monitorDeviceUID && !$0.outputs.isEmpty && $0.supports48k }) else {
+            error = "Choose an available output that supports 48 kHz in Setup before starting audio. Mixing Desk never chooses speakers automatically."
+            return
+        }
         guard !requestingAudioAccess else { return }
         if AVCaptureDevice.authorizationStatus(for: .audio) == .authorized {
             wantsRunning = true; startNow(); return
@@ -186,7 +211,7 @@ struct LoadSnapshot: Equatable {
                     guard let self, self.operationID == id else { return }; self.configuring = false
                     if let failure { self.running = false; self.wantsRunning = false; self.error = failure; return }
                     self.running = true; self.lastApplied = snapshot
-                    self.info = snapshot.monitoringMode == "directGuitar" ? "Direct guitar: control headphone guitar level on the Quad Cortex." : "Mixer monitoring: disable the duplicate direct guitar path on the Quad Cortex."
+                    self.info = snapshot.monitoringMode == "directGuitar" ? "Direct guitar: control guitar monitoring on your audio interface." : "Mixer monitoring: disable any duplicate direct-monitoring path on your audio interface."
                     self.apply()
                 }
             }
@@ -229,7 +254,10 @@ struct LoadSnapshot: Equatable {
             let old = s.monitorDeviceUID; s.monitorDeviceUID = uid
             if let bus = s.buses.first(where: { $0.kind == "monitor" }) {
                 s.routes.removeAll { $0.sourceKind == "bus" && $0.sourceID == bus.id && $0.destinationUID == old }
-                if !uid.isEmpty { s.routes.append(OutputRoute(sourceID: bus.id, destinationUID: uid)) }
+                if !uid.isEmpty {
+                    let channels = devices.first(where: { $0.uid == uid })?.outputs.count == 1 ? [0] : [0, 1]
+                    s.routes.append(OutputRoute(sourceID: bus.id, destinationUID: uid, channels: channels))
+                }
             }
         }
     }

@@ -146,10 +146,9 @@ public struct Session: Codable, Equatable, Sendable {
         var session = Session()
         session.buses = [Bus(name: "Monitor", kind: "monitor"), Bus(name: "Call", kind: "call"), Bus(name: "Stream")]
         var mic = ChannelStrip(name: "Microphone"); mic.color = "teal"
-        var guitar = ChannelStrip(name: "Guitar"); guitar.role = "guitar"; guitar.color = "amber"; guitar.source.channels = [0, 1]
         var music = ChannelStrip(name: "Application"); music.color = "purple"; music.source.kind = "application"; music.source.channels = [0, 1]
-        var caller = ChannelStrip(name: "Call Return"); caller.color = "blue"; caller.role = "callReturn"; caller.source.kind = "application"; caller.source.bundleID = "us.zoom.xos"; caller.source.channels = [0, 1]
-        for strip in [mic, guitar, music, caller] {
+        var caller = ChannelStrip(name: "Call Return"); caller.color = "blue"; caller.role = "callReturn"; caller.source.kind = "application"; caller.source.channels = [0, 1]
+        for strip in [mic, music, caller] {
             var s = strip; s.sends = session.buses.map { Send(busID: $0.id) }; session.strips.append(s)
         }
         session.buses[1].excludedStripID = caller.id

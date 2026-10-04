@@ -52,7 +52,7 @@ struct ChannelSettingsView: View {
                         }
                     }
                 }
-                Text("Quad Cortex: choose the USB channels carrying your intended wet or dry signal. The desk does not change your hardware preset.").font(.caption).foregroundStyle(.secondary)
+                Text("Choose the input channels carrying your intended signal. Mixing Desk does not change your audio interface’s internal routing.").font(.caption).foregroundStyle(.secondary)
             }.formStyle(.grouped)
             HStack { Spacer(); Button("Done") { dismiss() }.buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction) }
         }.padding(24).frame(width: 520, height: 620)
@@ -195,12 +195,13 @@ struct VirtualDevicesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 SectionTitle(title: "Virtual devices", subtitle: "Give every application its own named audio connection.")
+                DriverStatusView()
                 HStack(alignment: .top, spacing: 24) {
                     VStack(alignment: .leading, spacing: 18) {
                         Text("CREATE A DEVICE").font(.system(size: 10, weight: .bold)).tracking(1).foregroundStyle(DeskStyle.accent)
                         TextField("Device name", text: $name).textFieldStyle(.roundedBorder)
                         Picker("Channels", selection: $channelCount) { ForEach(1...64, id: \.self) { Text($0 == 2 ? "2 · Stereo" : "\($0) channels").tag($0) } }
-                        HStack { Button("Recording preset") { name = "Desk Recording"; channelCount = 16 }; Spacer(); Button("Create") { store.createDevice(name, channels: channelCount) }.buttonStyle(.borderedProminent).disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+                        HStack { Button("Recording preset") { name = "Desk Recording"; channelCount = 16 }; Spacer(); Button("Create") { store.createDevice(name, channels: channelCount) }.buttonStyle(.borderedProminent).disabled(!store.driverStatus.ready || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
                         Divider()
                         Label("48 kHz · Persistent device names", systemImage: "waveform").font(.caption).foregroundStyle(.secondary)
                         Text("Select the device as a microphone/input in Zoom, Logic, or OBS. Select it as the application's speaker/output to bring its return audio into the desk.").font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -216,7 +217,7 @@ struct VirtualDevicesView: View {
                 if store.virtualDevices.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("No Mixing Desk devices found").font(.headline)
-                        Text("If the driver is not installed, run scripts/build.sh, then sudo scripts/install-driver.sh from the project and reboot. Your existing BlackHole devices are available independently.").font(.system(size: 12)).foregroundStyle(.secondary).textSelection(.enabled)
+                        Text("Create a device above when the optional driver is ready. Existing third-party virtual devices are available independently as normal audio devices.").font(.system(size: 12)).foregroundStyle(.secondary).textSelection(.enabled)
                     }.padding(24).frame(maxWidth: .infinity, alignment: .leading).background(DeskStyle.panel, in: RoundedRectangle(cornerRadius: 10))
                 }
                 ForEach(store.virtualDevices) { device in VirtualDeviceRow(device: device) }
@@ -247,18 +248,18 @@ struct SetupView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                SectionTitle(title: "Audio setup", subtitle: "One shared timeline. Independent mixes for every destination.")
+                HStack { SectionTitle(title: "Audio setup", subtitle: "One shared timeline. Independent mixes for every destination."); Spacer(); Button("Setup Guide…") { store.showingSetupGuide = true }.disabled(store.wantsRunning) }
                 (compact ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14)) : AnyLayout(HStackLayout(alignment: .top, spacing: 20))) {
                     VStack(alignment: .leading, spacing: 18) {
                         Text("ENGINE").font(.system(size: 10, weight: .bold)).tracking(1).foregroundStyle(DeskStyle.accent)
                         TextField("Session name", text: $store.session.name)
                         Picker("Headphones / clock master", selection: Binding(get: { store.session.monitorDeviceUID }, set: { store.chooseMonitor($0) })) {
                             Text("Choose output device").tag("")
-                            ForEach(store.devices.filter { !$0.outputs.isEmpty && !$0.uid.hasPrefix("local.mixingdesk.virtual.") }) { Text($0.name).tag($0.uid) }
+                            ForEach(store.devices.filter { !$0.outputs.isEmpty && $0.supports48k && !$0.uid.hasPrefix("local.mixingdesk.virtual.") }) { Text($0.name).tag($0.uid) }
                             if !store.session.monitorDeviceUID.isEmpty && !store.devices.contains(where: { $0.uid == store.session.monitorDeviceUID }) { Text("Saved output · offline").tag(store.session.monitorDeviceUID) }
                         }
                         Picker("Buffer", selection: $store.session.bufferFrames) { ForEach([32,64,128,256,512,1024], id: \.self) { Text("\($0) samples · \(String(format: "%.2f", Double($0)/48)) ms per buffer").tag($0) } }
-                        Text("Use Quad Cortex as the clock master for your headphones. Other devices are drift-corrected. Smaller buffers reduce delay but demand more processing time.").font(.caption).foregroundStyle(.secondary)
+                        Text("Choose the output you use for monitoring as the clock master. Other devices are drift-corrected. Smaller buffers reduce delay but demand more processing time.").font(.caption).foregroundStyle(.secondary)
                         Picker("Monitoring", selection: $store.session.monitoringMode) { Text("Mixer Monitoring").tag("mixer"); Text("Direct Guitar Monitoring").tag("directGuitar") }
                         if store.running && !store.clockMembers.isEmpty {
                             Divider()
@@ -274,9 +275,9 @@ struct SetupView: View {
                     }.padding(24).frame(maxWidth: .infinity).background(DeskStyle.panel, in: RoundedRectangle(cornerRadius: 12))
                     VStack(alignment: .leading, spacing: 15) {
                         Text(store.session.monitoringMode == "mixer" ? "MIXER MONITORING" : "DIRECT GUITAR MONITORING").font(.system(size: 10, weight: .bold)).tracking(1).foregroundStyle(DeskStyle.accent)
-                        Text(store.session.monitoringMode == "mixer" ? "Your whole headphone mix passes through the desk." : "Hear the guitar directly from the Quad Cortex.").font(.title3.weight(.medium))
-                        Text(store.session.monitoringMode == "mixer" ? "On the Quad Cortex, send the intended guitar signal to USB and disable its duplicate direct path to your headphones. Keep the computer's USB playback routed to the headphone output." : "Keep the Quad Cortex's direct guitar path to your headphones enabled. Strips marked Guitar are removed from the software Monitor bus, while their call, stream, and recording feeds stay active.").font(.system(size: 12)).foregroundStyle(.secondary)
-                        Text("The desk cannot change Quad Cortex hardware routing. Hearing both paths causes doubled audio or phase effects.").font(.caption).foregroundStyle(.secondary)
+                        Text(store.session.monitoringMode == "mixer" ? "Your whole headphone mix passes through the desk." : "Hear the guitar directly from your audio interface.").font(.title3.weight(.medium))
+                        Text(store.session.monitoringMode == "mixer" ? "Route your intended inputs to the computer and disable any duplicate direct-monitoring path to your headphones. Keep computer playback routed to the headphone output." : "Keep your audio interface’s direct guitar path to your headphones enabled. Strips marked Guitar are removed from the software Monitor bus, while their call, stream, and recording feeds stay active.").font(.system(size: 12)).foregroundStyle(.secondary)
+                        Text("The desk cannot change your audio interface’s internal routing. Hearing both paths causes doubled audio or phase effects.").font(.caption).foregroundStyle(.secondary)
                         Divider()
                         Text("Latency is an estimate from buffer and device reports. Actual USB and converter delay must be measured with a loopback test.").font(.caption).foregroundStyle(.secondary)
                     }.padding(24).frame(maxWidth: .infinity).background(DeskStyle.panel, in: RoundedRectangle(cornerRadius: 12))

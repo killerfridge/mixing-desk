@@ -31,7 +31,8 @@ def sources(paths):
     for path in paths:
         extension=Path(path).suffix
         f=ref(path,{".swift":"sourcecode.swift",".cpp":"sourcecode.cpp.cpp",".mm":"sourcecode.cpp.objcpp",".h":"sourcecode.c.h",".hpp":"sourcecode.cpp.h",".plist":"text.plist.xml"}.get(extension,"text"))
-        all_files.append(f);result.append(f)
+        if f not in all_files: all_files.append(f)
+        result.append(f)
     return result
 
 specs = {
@@ -41,8 +42,9 @@ specs = {
     "MixingDeskAudio": ("com.apple.product-type.bundle", "MixingDeskAudio.driver", sources(["Driver/Driver.mm"]), []),
     "DeskModelsTests": ("com.apple.product-type.bundle.unit-test", "DeskModelsTests.xctest", sources(["Tests/DeskModelsTests/SessionTests.swift"]), ["DeskModels"]),
 }
-sources(["Sources/DeskAudio/Engine.hpp","Sources/DeskAudio/AudioUnitHost.hpp","Sources/DeskAudio/PluginHost.hpp","Sources/DeskAudio/VST3Support.hpp","Sources/DeskAudio/Equalizer.hpp","Sources/DeskAudio/InsertProcessor.hpp","Sources/DeskAudio/include/DeskAudio.h","Sources/DeskAudio/include/module.modulemap","Sources/DeskAudio/DriverProtocol.h","Driver/TimestampRing.hpp","Resources/Info.plist","Driver/Info.plist","Tests/EngineTests.cpp","Tests/EQChecks.hpp","Tests/HostedInsertChecks.hpp","Tests/AudioUnitTests.mm","Tests/DriverTests.mm"])
-license_file=sources(["Sources/DeskAudio/VST3SDK/pluginterfaces/LICENSE.txt"])[0]
+sources(["Sources/DeskAudio/Engine.hpp","Sources/DeskAudio/AudioUnitHost.hpp","Sources/DeskAudio/PluginHost.hpp","Sources/DeskAudio/VST3Support.hpp","Sources/DeskAudio/Equalizer.hpp","Sources/DeskAudio/InsertProcessor.hpp","Sources/DeskAudio/include/DeskAudio.h","Sources/DeskAudio/include/module.modulemap","Sources/DeskAudio/DriverProtocol.h","Sources/DeskAudio/DriverStatus.hpp","Driver/TimestampRing.hpp","Resources/Info.plist","Driver/Info.plist","Tests/EngineTests.cpp","Tests/EQChecks.hpp","Tests/HostedInsertChecks.hpp","Tests/AudioUnitTests.mm","Tests/DriverTests.mm"])
+app_resources=sources(["Sources/DeskAudio/VST3SDK/pluginterfaces/LICENSE.txt", "LICENSE", "Resources/MixingDesk.icns"])
+driver_resources=sources(["LICENSE"])
 products={}
 for name, (_, product, _, _) in specs.items():
     products[name]=add("product:"+name,isa="PBXFileReference",explicitFileType="archive.ar" if product.endswith(".a") else "wrapper.application" if product.endswith(".app") else "wrapper.cfbundle",includeInIndex="0",path=product,sourceTree="BUILT_PRODUCTS_DIR")
@@ -67,7 +69,7 @@ for name,(product_type,product,files,deps) in specs.items():
     for dep in deps:
         proxy=add(f"proxy:{name}:{dep}",isa="PBXContainerItemProxy",containerPortal=oid("project"),proxyType="1",remoteGlobalIDString=oid("target:"+dep),remoteInfo=dep)
         dependencies.append(add(f"dependency:{name}:{dep}",isa="PBXTargetDependency",target=oid("target:"+dep),targetProxy=proxy))
-    add("target:"+name,isa="PBXNativeTarget",buildConfigurationList=configs(name,settings),buildPhases=[phase(name,files),phase(name+":frameworks",links,"PBXFrameworksBuildPhase")]+([phase(name+":resources",[license_file],"PBXResourcesBuildPhase")] if name=="MixingDesk" else []),buildRules=[],dependencies=dependencies,name=name,productName=name,productReference=products[name],productType=product_type)
+    add("target:"+name,isa="PBXNativeTarget",buildConfigurationList=configs(name,settings),buildPhases=[phase(name,files),phase(name+":frameworks",links,"PBXFrameworksBuildPhase")]+([phase(name+":resources",app_resources if name=="MixingDesk" else driver_resources,"PBXResourcesBuildPhase")] if name in ("MixingDesk", "MixingDeskAudio") else []),buildRules=[],dependencies=dependencies,name=name,productName=name,productReference=products[name],productType=product_type)
 
 product_group=add("products",isa="PBXGroup",children=list(products.values()),name="Products",sourceTree="<group>")
 framework_group=add("frameworks",isa="PBXGroup",children=list(frameworks.values()),name="Frameworks",sourceTree="<group>")

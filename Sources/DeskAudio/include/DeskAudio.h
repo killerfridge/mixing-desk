@@ -22,6 +22,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSDictionary<NSString*, id>*)status;
 - (void)clearClips;
 - (NSArray<NSDictionary<NSString*, id>*>*)virtualDevices;
+// Read-only: state, installedBuild, loadedBuild, protocolVersion, and message.
+- (NSDictionary<NSString*, id>*)driverStatus;
 - (BOOL)createVirtualDevice:(NSString*)name channels:(NSInteger)channels error:(NSError**)error;
 - (BOOL)renameVirtualDevice:(NSString*)uid name:(NSString*)name error:(NSError**)error;
 - (BOOL)deleteVirtualDevice:(NSString*)uid error:(NSError**)error;

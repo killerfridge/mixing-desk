@@ -107,6 +107,12 @@
 			"path" = "Sources/MixingDesk/RoutingViews.swift";
 			"sourceTree" = "<group>";
 		};
+		"0605261FA77AA509DE064FCB" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.swift";
+			"path" = "Sources/MixingDesk/SetupGuide.swift";
+			"sourceTree" = "<group>";
+		};
 		"6939255ABABCC22C5C3FE476" = {
 			"isa" = "PBXFileReference";
 			"lastKnownFileType" = "sourcecode.cpp.objcpp";
@@ -173,6 +179,12 @@
 			"path" = "Sources/DeskAudio/DriverProtocol.h";
 			"sourceTree" = "<group>";
 		};
+		"2903A48766C7EAC1F2A5615B" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "sourcecode.cpp.h";
+			"path" = "Sources/DeskAudio/DriverStatus.hpp";
+			"sourceTree" = "<group>";
+		};
 		"938D73890D0BD4F0FD4C5D8D" = {
 			"isa" = "PBXFileReference";
 			"lastKnownFileType" = "sourcecode.cpp.h";
@@ -225,6 +237,18 @@
 			"isa" = "PBXFileReference";
 			"lastKnownFileType" = "text";
 			"path" = "Sources/DeskAudio/VST3SDK/pluginterfaces/LICENSE.txt";
+			"sourceTree" = "<group>";
+		};
+		"BD84DAF23E7F5FEBD0301663" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text";
+			"path" = "LICENSE";
+			"sourceTree" = "<group>";
+		};
+		"58AF7F5CD619D424F70DE3E0" = {
+			"isa" = "PBXFileReference";
+			"lastKnownFileType" = "text";
+			"path" = "Resources/MixingDesk.icns";
 			"sourceTree" = "<group>";
 		};
 		"1368ED67610456A059BCBFA4" = {
@@ -713,6 +737,10 @@
 			"isa" = "PBXBuildFile";
 			"fileRef" = "E911FD1BFD01D09DD51FF7B7";
 		};
+		"8DFC02B94703BB05C6B3952F" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "0605261FA77AA509DE064FCB";
+		};
 		"DA37357E779D513806F50FC3" = {
 			"isa" = "PBXSourcesBuildPhase";
 			"buildActionMask" = "2147483647";
@@ -726,6 +754,7 @@
 				"38777E0AE6F226D5C7FDB3C9",
 				"B8EF4BB7545059002DB583DC",
 				"AE7D770EF5E9DB4510232AC9",
+				"8DFC02B94703BB05C6B3952F",
 			);
 			"runOnlyForDeploymentPostprocessing" = "0";
 		};
@@ -790,11 +819,21 @@
 			"isa" = "PBXBuildFile";
 			"fileRef" = "0C045C78F52DBBAA710167AB";
 		};
+		"A1C0160DEB8D1DC87F0BE20E" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "BD84DAF23E7F5FEBD0301663";
+		};
+		"8DAA7DA25F1C7F9343CFFEFE" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "58AF7F5CD619D424F70DE3E0";
+		};
 		"37668F045EF87FE1CF50BAF1" = {
 			"isa" = "PBXResourcesBuildPhase";
 			"buildActionMask" = "2147483647";
 			"files" = (
 				"A577AA2D2E329903309DEC77",
+				"A1C0160DEB8D1DC87F0BE20E",
+				"8DAA7DA25F1C7F9343CFFEFE",
 			);
 			"runOnlyForDeploymentPostprocessing" = "0";
 		};
@@ -923,12 +962,25 @@
 			);
 			"runOnlyForDeploymentPostprocessing" = "0";
 		};
+		"0BFC8566AFC68C631934EF29" = {
+			"isa" = "PBXBuildFile";
+			"fileRef" = "BD84DAF23E7F5FEBD0301663";
+		};
+		"404542AEE5627014A6B0029E" = {
+			"isa" = "PBXResourcesBuildPhase";
+			"buildActionMask" = "2147483647";
+			"files" = (
+				"0BFC8566AFC68C631934EF29",
+			);
+			"runOnlyForDeploymentPostprocessing" = "0";
+		};
 		"C8005143BCB062A8170C24E8" = {
 			"isa" = "PBXNativeTarget";
 			"buildConfigurationList" = "205B9F41BF11BB565841C638";
 			"buildPhases" = (
 				"DB7120816894B581576C09AB",
 				"91E695698FC0BE172C98BF03",
+				"404542AEE5627014A6B0029E",
 			);
 			"buildRules" = (
 			);
@@ -1112,6 +1164,7 @@
 				"BFBD156DE6FD4FD738A35B1A",
 				"43D88039AD3231EA61DB3884",
 				"E911FD1BFD01D09DD51FF7B7",
+				"0605261FA77AA509DE064FCB",
 				"6939255ABABCC22C5C3FE476",
 				"C11BAB9C7892D255DEF3AD2C",
 				"A9CBBC1DB9A05BB74306242B",
@@ -1123,6 +1176,7 @@
 				"C099DC8A416099ABBC4DFC1D",
 				"4DC90B91CA90BA0366383E68",
 				"F85EEB1A1FAE3EA8C1A05898",
+				"2903A48766C7EAC1F2A5615B",
 				"938D73890D0BD4F0FD4C5D8D",
 				"5318E19337B000B06F194979",
 				"8F8B4E1B4D10075FC2A6B58D",
@@ -1132,6 +1186,8 @@
 				"23F31C49D4CFF85E63DB54BB",
 				"2DAFA3BD893E00D98F8F3193",
 				"0C045C78F52DBBAA710167AB",
+				"BD84DAF23E7F5FEBD0301663",
+				"58AF7F5CD619D424F70DE3E0",
 				"E2AA269EB967A8853A258BFA",
 				"0A3E27B8CA818264D75C8D81",
 			);

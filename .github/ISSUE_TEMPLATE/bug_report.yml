@@ -1,0 +1,32 @@
+name: Bug report
+description: Report a reproducible Mixing Desk problem
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "Support is best effort. Review logs and session files for device IDs, paths, and plugin state before sharing. Do not attach third-party plugin binaries, licences, or private audio."
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: macOS version, Mac chip, Mixing Desk version/build, and installed/loaded driver builds
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Audio setup
+      description: Interface, buffer size, source/output routing, and plugin names/versions; does it reproduce with inserts bypassed?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps, expected result, and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics or screenshots
+      description: Include the exact error message and whether this was a first install or update.

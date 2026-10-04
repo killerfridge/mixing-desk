@@ -2,6 +2,7 @@
 #import "Engine.hpp"
 #import "PluginHost.hpp"
 #import "DriverProtocol.h"
+#import "DriverStatus.hpp"
 #import <CoreAudio/CoreAudio.h>
 #import <CoreAudio/AudioHardwareTapping.h>
 #import <CoreAudio/CATapDescription.h>
@@ -82,8 +83,10 @@ NSDictionary* driverConfiguration() {
     NSObject* result=CFBridgingRelease(value); return [result isKindOfClass:NSDictionary.class] ? (NSDictionary*)result : nil;
 }
 BOOL driverCommand(NSDictionary* command,NSError** error) {
-    auto id=driverID(); if(!id) return fail(error,@"The Mixing Desk driver is not installed. Build and run the driver installer, then reboot.");
-    if([driverConfiguration()[@"driverBuild"] intValue]<MD_DRIVER_BUILD) return fail(error,@"The installed Mixing Desk driver needs updating. Run sudo ./scripts/install-driver.sh --restart-audio from the project, or install without that option and reboot.");
+    auto id=driverID(); if(!id) return fail(error,@"Install the optional Mixing Desk Audio component using the Mixing Desk installer, then restart your Mac. If it is already installed, restart to load it.");
+    auto config=driverConfiguration();
+    if([config[@"driverBuild"] intValue]<MD_DRIVER_BUILD || [config[@"version"] intValue]!=MD_DRIVER_PROTOCOL_VERSION)
+        return fail(error,@"This virtual-audio driver is incompatible. Install the Mixing Desk Audio component from this app's release, then restart your Mac.");
     auto a=addr(MD_DRIVER_CONFIG_SELECTOR); CFDictionaryRef cf=(__bridge CFDictionaryRef)command;
     OSStatus status=AudioObjectSetPropertyData(id,&a,0,nullptr,sizeof(cf),&cf);
     if(status) return fail(error,[NSString stringWithFormat:@"Virtual-device change failed (%d). Devices in use cannot be removed; names and channel counts must be valid.",status],status);
@@ -245,8 +248,8 @@ NSDictionary* meter(Meter m) { return @{ @"peakL":@(m.peakL),@"peakR":@(m.peakR)
         if(uid.length && deviceForUID(uid)) {if(![selected containsObject:uid]) [selected addObject:uid];}
         else if(publicUID.length) [offline addObject:publicUID];
     }
-    if([config[@"driverBuild"] intValue]<MD_DRIVER_BUILD) for(NSString* uid in selected) if([[bridges allValues] containsObject:uid])
-        return fail(error,@"The installed virtual driver has an older clock implementation. Install the rebuilt driver and restart Core Audio or reboot before using virtual routes.");
+    if([config[@"driverBuild"] intValue]<MD_DRIVER_BUILD || [config[@"version"] intValue]!=MD_DRIVER_PROTOCOL_VERSION) for(NSString* uid in selected) if([[bridges allValues] containsObject:uid])
+        return fail(error,@"The virtual-audio driver is incompatible. Install the Mixing Desk Audio component from this app's release and restart your Mac before using virtual routes.");
     NSMutableArray* subs=[NSMutableArray array];
     int inputOffset=0,outputOffset=0;
     for(NSString* uid in selected) {
@@ -438,6 +441,26 @@ NSDictionary* meter(Meter m) { return @{ @"peakL":@(m.peakL),@"peakR":@(m.peakR)
 }
 - (void)clearClips { _host->engine.clearClip(); }
 - (NSArray*)virtualDevices {return driverConfiguration()[@"devices"] ?: @[];}
+- (NSDictionary*)driverStatus {
+    NSString* path=@"/Library/Audio/Plug-Ins/HAL/MixingDeskAudio.driver/Contents/Info.plist";
+    bool installed=[[NSFileManager defaultManager] fileExistsAtPath:path];
+    NSDictionary* disk=[NSDictionary dictionaryWithContentsOfURL:[NSURL fileURLWithPath:path] error:nil];
+    bool loaded=driverID()!=0;
+    NSDictionary* config=driverConfiguration();
+    int installedBuild=[disk[@"CFBundleVersion"] intValue], loadedBuild=[config[@"driverBuild"] intValue], protocol=[config[@"version"] intValue];
+    NSString* state; NSString* message;
+    switch(desk::driverAvailability(installed,installedBuild,loaded,loadedBuild,protocol)) {
+        case desk::DriverAvailability::missing:
+            state=@"missing"; message=@"Optional driver not installed. Run the Mixing Desk installer and select Mixing Desk Audio to send mixes to other apps as a microphone or recording input."; break;
+        case desk::DriverAvailability::restartRequired:
+            state=@"restartRequired"; message=installed ? @"The installed driver is not loaded yet. Restart your Mac. If this message remains, reinstall the Mixing Desk Audio component." : @"The driver has been removed but is still loaded. Restart your Mac to finish removing it."; break;
+        case desk::DriverAvailability::incompatible:
+            state=@"incompatible"; message=@"This driver version is incompatible or unreadable. Install the Mixing Desk Audio component from this app's release, then restart your Mac."; break;
+        case desk::DriverAvailability::ready:
+            state=@"ready"; message=@"Mixing Desk Audio is ready. Create a device, patch a bus to it, then select it as an input in your call, stream, or recording app."; break;
+    }
+    return @{@"state":state,@"message":message,@"installedBuild":@(installedBuild),@"loadedBuild":@(loadedBuild),@"protocolVersion":@(protocol)};
+}
 - (BOOL)createVirtualDevice:(NSString*)name channels:(NSInteger)count error:(NSError**)error { return driverCommand(@{@"version":@MD_DRIVER_PROTOCOL_VERSION,@"operation":@"create",@"uid":[@"local.mixingdesk.virtual." stringByAppendingString:NSUUID.UUID.UUIDString],@"name":name,@"channels":@(count)},error); }
 - (BOOL)renameVirtualDevice:(NSString*)uid name:(NSString*)name error:(NSError**)error { return driverCommand(@{@"version":@MD_DRIVER_PROTOCOL_VERSION,@"operation":@"rename",@"uid":uid,@"name":name},error); }
 - (BOOL)deleteVirtualDevice:(NSString*)uid error:(NSError**)error { return driverCommand(@{@"version":@MD_DRIVER_PROTOCOL_VERSION,@"operation":@"delete",@"uid":uid},error); }

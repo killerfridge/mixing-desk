@@ -1,0 +1,6 @@
+#!/bin/bash
+set -euo pipefail
+source "$(dirname "$0")/common.sh"
+desk_check_install "$@"
+# Copy before replacement, so a failed payload install still has a recovery copy.
+desk_backup_driver copy

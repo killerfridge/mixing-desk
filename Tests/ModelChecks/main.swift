@@ -7,19 +7,21 @@ func expect(_ value: @autoclosure () throws -> Bool, _ message: String) throws {
 func rejects(_ session: Session) { do { _ = try session.validated(); fatalError("Expected rejection") } catch {} }
 
 let original = Session.starter()
+try expect(original.strips.count == 3 && original.monitorDeviceUID.isEmpty && original.routes.isEmpty, "New desks have no hardware routes")
+try expect(original.strips.allSatisfy { $0.source.deviceUID.isEmpty && $0.source.bundleID.isEmpty }, "New desks have no personal device or application bindings")
 try expect(Session.decode(original.data()) == original, "Session round trip")
-try expect(original.buses[1].excludedStripID == original.strips[3].id, "Default mix-minus")
+try expect(original.buses[1].excludedStripID == original.strips[2].id, "Default mix-minus")
 var session = original
 session.buses[0].sends = [Send(busID: session.buses[1].id)]
 session.buses[1].sends = [Send(busID: session.buses[2].id)]
 session.buses[2].sends = [Send(busID: session.buses[0].id)]
 rejects(session)
-session = original; session.strips[0].source.returnBundleID = "us.zoom.xos"; rejects(session)
+session = original; session.strips[2].source.bundleID = "us.zoom.xos"; session.strips[0].source.returnBundleID = "us.zoom.xos"; rejects(session)
 session = original; session.version = 2; rejects(session)
 session = original; session.strips[0].faderDB = .nan; rejects(session)
 session = original; session.strips[0].source.deviceUID = "unplugged-rode"
 try expect(Session.decode(session.data()).strips[0].source.deviceUID == "unplugged-rode", "Offline binding persistence")
-session = original; let caller = session.strips[3].id
+session = original; let caller = session.strips[2].id
 session.routes = [OutputRoute(sourceKind: "strip", sourceID: caller, destinationUID: "offline")]
 session.removeStrip(caller)
 try expect(session.routes.isEmpty && session.buses[1].excludedStripID.isEmpty, "Remove source references")

@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include "../Sources/DeskAudio/DriverProtocol.h"
+#include "../Sources/DeskAudio/DriverStatus.hpp"
 extern "C" void* MixingDeskDriverFactory(CFAllocatorRef,CFUUIDRef);
 static NSDictionary* storage;
 static AudioServerPlugInDriverRef driver;
@@ -21,6 +22,15 @@ static OSStatus command(NSDictionary* d) {auto a=address(MD_DRIVER_CONFIG_SELECT
 static NSDictionary* configuration() {auto a=address(MD_DRIVER_CONFIG_SELECTOR);CFPropertyListRef value=nullptr;UInt32 size=sizeof(value);assert(!(*driver)->GetPropertyData(driver,kAudioObjectPlugInObject,0,&a,0,nullptr,size,&size,&value));return CFBridgingRelease(value);}
 static std::vector<AudioObjectID> devices() {auto a=address(kAudioPlugInPropertyDeviceList);UInt32 size=0;assert(!(*driver)->GetPropertyDataSize(driver,kAudioObjectPlugInObject,0,&a,0,nullptr,&size));std::vector<AudioObjectID> result(size/sizeof(AudioObjectID));assert(!(*driver)->GetPropertyData(driver,kAudioObjectPlugInObject,0,&a,0,nullptr,size,&size,result.data()));return result;}
 int main() { @autoreleasepool {
+    using desk::DriverAvailability; using desk::driverAvailability;
+    assert(driverAvailability(false,0,false,0,0)==DriverAvailability::missing);
+    assert(driverAvailability(true,2,false,0,0)==DriverAvailability::restartRequired);
+    assert(driverAvailability(false,0,true,2,1)==DriverAvailability::restartRequired);
+    assert(driverAvailability(true,3,true,2,1)==DriverAvailability::restartRequired);
+    assert(driverAvailability(true,1,true,1,1)==DriverAvailability::incompatible);
+    assert(driverAvailability(true,2,true,2,2)==DriverAvailability::incompatible);
+    assert(driverAvailability(true,2,true,0,0)==DriverAvailability::incompatible);
+    assert(driverAvailability(true,2,true,2,1)==DriverAvailability::ready);
     driver=(AudioServerPlugInDriverRef)MixingDeskDriverFactory(nullptr,kAudioServerPlugInTypeUUID);assert(driver);
     assert(!(*driver)->Initialize(driver,&host));
     assert(!command(@{@"version":@1,@"operation":@"create",@"uid":@"test.call",@"name":@"Desk Call",@"channels":@2}));

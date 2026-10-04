@@ -4,4 +4,5 @@ build/
 *.xcuserstate
 xcuserdata/
 .swiftpm/
-
+__pycache__/
+*.pyc

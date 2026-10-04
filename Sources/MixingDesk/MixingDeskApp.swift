@@ -17,6 +17,9 @@ struct MixingDeskApp: App {
         }
         .defaultSize(width: 1180, height: 740)
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Setup Guide…") { store.showingSetupGuide = true }.disabled(store.wantsRunning)
+            }
             CommandGroup(replacing: .newItem) {
                 Button("Open Session…", action: store.openSession).keyboardShortcut("o")
                 Button("Export Session…", action: store.exportSession).keyboardShortcut("s", modifiers: [.command, .shift])
