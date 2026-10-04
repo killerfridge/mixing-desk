@@ -106,6 +106,8 @@ The engine supports 64 strips, 16 buses, 512 aggregate channels per direction, 5
 
 The shared plugin rack prepares AUv2 and VST3 instances outside IO and retires them only after the render thread acknowledges a newer configuration. VST3 lifecycle, state, and editor calls run on the main thread; parameter values cross into IO through preallocated queues and lock-free atomics. Editors retain their instance independently. VST3 sessions store stable class IDs, processor/controller state, and pending editor parameter values rather than absolute bundle paths. Unsupported formats or malformed states are rejected; missing identities retain their saved settings. Existing version-1 sessions remain compatible.
 
+AUv2 construction, initialization and disposal also run on the main thread. Some plugin frameworks establish their UI message thread during processor construction; creating these units on the background control queue can prevent dropdown selections from completing even when the editor itself opens on the main thread.
+
 The driver configuration interface is versioned (`DriverProtocol.h`); its audio rings keep sample timestamps and separate directions. Stale/missing frames and a stopped counterpart produce silence. Device names and IDs are stored through the HAL host's persistence API. BlackHole is accessed as an ordinary device; its code is not bundled.
 
 ## Tests
@@ -114,6 +116,10 @@ The driver configuration interface is versioned (`DriverProtocol.h`); its audio 
 
 
 `./scripts/audio-unit-test.sh` checks the real AU adapter using Apple's AUHipass on both mono and stereo sources, without hardware IO. These AU checks also run in `scripts/test.sh`. `--list` prints effect identifiers; pass an identifier such as `61756d66:4e474a58:4e445350` to test an installed effect, adding `--mono` to check a mono source. Run outside a restricted development sandbox so macOS can enumerate Audio Units. These checks use synthetic samples and do not play or record microphone audio. They cover channel negotiation through initialization, rendering, bypass, saved state, the snapshot/publication race, and missing-plugin silence. Third-party checks require a working license.
+
+`./scripts/audio-unit-editor-test.sh` is an additional integration check requiring installed Studio Tools FET-76, TUBE-61, and BASS-1A AUs and an interactive macOS session. It opens disposable editor windows, creates and retires units from the same control-queue path as the app, selects presets/control dropdowns/quality/scale, verifies dismissal and saved selections after reopening, and fails after 20 seconds if callbacks stall. It does not open audio devices or change the saved desk. Pass a Studio Tools AU identifier to test one product.
+
+`./scripts/ui-status-test.sh` verifies that moving meters and DSP readings do not invalidate the whole desk or app menus, while changed plugin errors, latency, clock information, and audio status still update. Add `--benchmark --au 61756678:46743736:5374746c` to open disposable desk/FET-76 windows and measure CPU use while replaying meters at 30 Hz. This requires an interactive macOS session and the installed AU; it does not start audio or change the saved desk. The benchmark has a 30-second timeout.
 
 ```sh
 ./scripts/test.sh

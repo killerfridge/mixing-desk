@@ -2,6 +2,22 @@
 
 Environment: Apple Silicon, macOS 26.2, Swift 6.1.2 / macOS 15.5 SDK from Command Line Tools.
 
+## App 0.4.3: plugin interface performance
+
+- User clarified that plugin interfaces were slow; audio was not breaking up. A live sample of 0.4.2 showed repeated SwiftUI scene/menu updates and menu-bar drawing even with audio stopped. The 30 Hz status poll unconditionally published ten properties on the app-wide `DeskStore`, invalidating its consumers on every tick.
+- Meter and DSP-load readings now have separate observable stores consumed only by their small views. General status and device discovery publish only changed values. Meter cadence, audio processing, plugin state capture, and the AU main-thread lifecycle fix are retained.
+- The UI regression replays 300 changing meter/load snapshots with zero desk-wide notifications; it also verifies unchanged-value suppression and actual plugin error/latency, buffer size, clock, offline source, and stop changes. The pre-fix path issued 3,000 desk-wide notifications for the same 300 snapshots.
+- Matched 10-second runs with the native FET-76 editor open and 30 Hz synthetic meters measured 3.895 CPU seconds before and 1.710 after (39.0% versus 17.1% of one CPU, approximately 56% less). The 60 Hz run-loop heartbeat's 95th percentile was 17.38 ms in both runs. This is a UI workload comparison with no hardware audio, not a measurement of plugin drawing frame rate or an audio-performance claim. Logs: `build/ui-before-benchmark.log`, `build/ui-after-benchmark.log`; original app sample: `build/plugin-ui-before.sample.txt`.
+- Release build, signature verification, plist/project validation, and engine/driver/AUv2/VST3/session regressions pass. Full Xcode/XCTest remains unavailable; standalone model checks passed. Version 0.4.3 (build 9) was reopened with the saved desk and audio stopped. Driver code is unchanged.
+- Final live samples of the updated application, both idle and with the saved Darkglass Ultra editor open, no longer showed the recurring scene/menu redraw stacks (`build/plugin-ui-after.sample.txt`, `build/plugin-ui-editor-after.sample.txt`). The saved native editor opened successfully without changing its controls.
+
+## App 0.4.2: Studio Tools dropdown selections
+
+- Traced the reported selection failure to AU construction on the serial background control queue. Studio Tools' JUCE runtime recorded that queue's thread as its message thread. Cocoa delivered menu completion on the actual main thread, where `Component::exitModalState` repeatedly posted itself again instead of completing the selection. A sampled pre-fix test shows that loop; the bounded editor regression fails on the old loader with exit code 124.
+- AU instance creation, initialization, failure cleanup, and final disposal now enter the main thread. Editor creation was already there. DSP rendering remains on the audio callback, and generation-based instance retirement remains intact. No plugin binaries or vendor source were changed.
+- The isolated installed-plugin editor regression passes for FET-76, TUBE-61, and BASS-1A: preset selection, Settings scale selection, frequency/input-mode dropdowns, quality selection, menu dismissal, saved settings and editor reopening, and destruction from the control queue. It tests native popup windows and BASS-1A's embedded menus. Each test has a 20-second independent watchdog so an event-loop stall cannot be mistaken for a pass.
+- The engine, driver, AUv2 mono/stereo, VST3, and standalone session-model regression suites pass. Release 0.4.2/build 8, signature verification, and project/plist validation pass. Full Xcode/XCTest is unavailable. Tests do not use audio hardware. The temporary FET-76 insert used for UI diagnosis was removed from the user's desk; the original Darkglass insert remains. The final build was reopened with that session and audio stopped.
+
 ## App 0.4.1: AUv2 initialization on mono sources
 
 - Reproduced `Audio Unit initialization (-10868)` with Apple AUHipass and the Studio Tools FET-76 insert saved on a mono source. The host tried one input/two output channels, accepted the two successful stream-format setters, then stopped when initialization rejected the combined layout. Earlier AU checks covered stereo sources and missed this failure.
