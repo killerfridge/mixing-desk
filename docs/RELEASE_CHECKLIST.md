@@ -4,12 +4,12 @@ Target: `v0.5.0-beta.1`. **Public binary publication is blocked until every requ
 
 ## Automated / local
 
-- [ ] Clean tag matches `release/version.txt`, app version/build, and source revision in BUILD.json.
-- [ ] Source/history audit reviewed; third-party licences and attribution present.
-- [ ] GitHub CI passes on the configured minimum/current macOS generations, including full Xcode build/tests.
-- [ ] Engine, driver host, AU/VST3 synthetic suites, models, and offline soak pass.
-- [ ] App/driver architecture, minimum OS, signatures, permissions, resources, package payloads, checksums, and default installer choices pass verification.
-- [ ] Screenshots and installation instructions reflect the release.
+- [x] Clean tag matches `release/version.txt`, app version/build, and source revision in BUILD.json.
+- [x] Source/history audit reviewed; third-party licences and attribution present.
+- [x] GitHub CI passes on the configured minimum/current macOS generations, including full Xcode build/tests.
+- [x] Engine, driver host, AU/VST3 synthetic suites, models, and offline soak pass.
+- [x] App/driver architecture, minimum OS, signatures, permissions, resources, package payloads, checksums, and default installer choices pass verification.
+- [x] Screenshots and installation instructions reflect the release.
 
 ## Clean Macs — required before public binaries
 
@@ -51,3 +51,14 @@ After the beta has passed the same gates and blocking reported defects are fixed
 ## Evidence log
 
 Append dated results with exact versions, checksums, and links to CI runs or local logs. Unchecked items remain pending; do not infer a pass from an unrelated development-machine test. Current implementation validation is recorded separately in VALIDATION.md.
+
+### 2026-10-04 — automated candidate verification
+
+Tag `v0.5.0-beta.1`, commit `dc8295fb055722f8d281c1e2430bbc815f4e2277`: [tagged CI and draft preparation passed](https://github.com/killerfridge/mixing-desk/actions/runs/37192603741) on Apple Silicon macOS 14 and macOS 26. App 0.5.0/build 10; driver 0.1.1/build 2. The [draft prerelease](https://github.com/killerfridge/mixing-desk/releases/tag/untagged-32b4c201b91f6dd7cf8d) is unpublished. Authenticated downloads of all five uploaded assets match GitHub's digests and pass local package verification. No installer was executed, and no browser approval, reboot, or physical audio acceptance is claimed.
+
+Use these exact draft assets for acceptance testing; locally rebuilt packages may have different bytes.
+
+| Asset | SHA-256 |
+| --- | --- |
+| `MixingDesk-0.5.0-beta.1-arm64.pkg` | `35ece88a89cf298d5c92abbef04820d8e33e361114012c4d6bb4910fa59a73da` |
+| `Remove-MixingDesk-Audio-0.5.0-beta.1.pkg` | `82bb7a5ff8ee96e51c2e74a92ab42da0eb2f0c25e699990b65d09335235c1d03` |
