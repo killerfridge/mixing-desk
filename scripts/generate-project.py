@@ -31,7 +31,8 @@ def sources(paths):
     for path in paths:
         extension=Path(path).suffix
         f=ref(path,{".swift":"sourcecode.swift",".cpp":"sourcecode.cpp.cpp",".mm":"sourcecode.cpp.objcpp",".h":"sourcecode.c.h",".hpp":"sourcecode.cpp.h",".plist":"text.plist.xml"}.get(extension,"text"))
-        all_files.append(f);result.append(f)
+        if f not in all_files: all_files.append(f)
+        result.append(f)
     return result
 
 specs = {

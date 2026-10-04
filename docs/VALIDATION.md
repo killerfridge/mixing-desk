@@ -2,6 +2,20 @@
 
 Environment: Apple Silicon, macOS 26.2, Swift 6.1.2 / macOS 15.5 SDK from Command Line Tools.
 
+## App 0.5.0 beta preparation — 2026-10-04
+
+App version 0.5.0, build 10; driver version 0.1.1, build 2. This work incorporates the merged 0.4.3 plugin dropdown and UI polling fixes.
+
+- Native arm64 release app and HAL driver build on this Apple Silicon macOS 26.2 development Mac with Command Line Tools. Bundle checks verify the 14.4 deployment target, ad-hoc signatures, icon, both required licence notices, permissions, and driver protocol/build consistency.
+- Engine, driver-host, Apple AUHipass (mono/stereo), synthetic VST3, and standalone Swift model suites pass. The offline soak processed 172,800,000 frames in about 54 seconds; this is 60 minutes of synthetic audio, not real-time hardware endurance. The sandbox cannot enumerate the Apple AU; the passing AU/VST3 run used normal macOS process access without hardware IO.
+- Driver availability cases cover missing, newly installed/not loaded, removed/still loaded, mismatched installed/loaded builds, old build, unreadable configuration, incompatible protocol, and ready.
+- The real SwiftUI store/renderer verifies fresh-session setup, saved version-1 desk preservation (including an instrument and offline routes), and single-channel output patching. Documentation screenshots render the actual views with isolated state and discovery disabled. No saved user session was read or changed by this renderer.
+- The UI status regression passes: 300 moving meter/load updates cause no whole-desk invalidations; unchanged status is suppressed while actual errors, latency, device, and stop changes propagate.
+- Combined and removal packages build. Read-only expansion verifies payload paths, signatures, licences, restricted permissions, scripts, OS/architecture restrictions, and app-close declarations. macOS Installer evaluation confirms app selected, optional driver deselected, and successful explicit driver selection. No system installation, driver replacement, removal, or reboot was performed.
+- Source/history pattern scan found no credential patterns. All 65 vendored files match the documented Steinberg commit. See PUBLICATION_AUDIT.md for limits and provenance.
+- Full Xcode/XCTest is unavailable locally; GitHub CI is configured to run it on macOS 14 and macOS 26. CI results must be recorded separately.
+- **Still pending:** browser-downloaded installer/driver approval on clean macOS 14.4/current Macs, install/upgrade/removal/reboot lifecycle, two independent friend setups including a non-Quad-Cortex interface, and the real 60-minute mixed workload. These gate public binaries; existing development results do not satisfy them. See RELEASE_CHECKLIST.md.
+
 ## App 0.4.3: plugin interface performance
 
 - User clarified that plugin interfaces were slow; audio was not breaking up. A live sample of 0.4.2 showed repeated SwiftUI scene/menu updates and menu-bar drawing even with audio stopped. The 30 Hz status poll unconditionally published ten properties on the app-wide `DeskStore`, invalidating its consumers on every tick.

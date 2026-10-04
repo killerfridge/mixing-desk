@@ -52,7 +52,7 @@ struct ContentView: View {
         }
         .background(DeskStyle.background).tint(DeskStyle.accent)
         .onChange(of: store.session) { _, _ in store.apply() }
-        .alert("Mixing Desk", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("OK") { store.error = nil } } message: { Text(store.error ?? "") }
+        .alert("Mixing Desk", isPresented: Binding(get: { !store.showingSetupGuide && store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("OK") { store.error = nil } } message: { Text(store.error ?? "") }
         .sheet(isPresented: $savingPreset) {
             VStack(alignment: .leading, spacing: 20) {
                 Text("Save a desk preset").font(.title2.bold())
