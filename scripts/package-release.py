@@ -50,13 +50,14 @@ def component(stage, work, name, identifier, version):
 def distribution(work, destination, version, removal=False):
     root = ET.Element('installer-gui-script', {'minSpecVersion': '2'})
     ET.SubElement(root, 'title').text = 'Remove Mixing Desk Audio' if removal else f'Mixing Desk {version} — Experimental Beta'
-    ET.SubElement(root, 'options', {'customize': 'never' if removal else 'always', 'hostArchitectures': 'arm64', 'require-scripts': 'false'})
+    ET.SubElement(root, 'options', {'customize': 'never' if removal else 'always', 'hostArchitectures': 'arm64', 'require-scripts': 'true', 'allow-external-scripts': 'false'})
     ET.SubElement(root, 'domains', {'enable_anywhere': 'false', 'enable_currentUserHome': 'false', 'enable_localSystem': 'true'})
-    volume = ET.SubElement(root, 'volume-check')
+    volume = ET.SubElement(root, 'volume-check', {'script': 'true'})
     ET.SubElement(ET.SubElement(volume, 'allowed-os-versions'), 'os-version', {'min': '14.4'})
     ET.SubElement(root, 'welcome', {'file': 'Remove.html' if removal else 'Welcome.html', 'mime-type': 'text/html'})
     ET.SubElement(root, 'conclusion', {'file': 'Removed.html' if removal else 'Installed.html', 'mime-type': 'text/html'})
-    ET.SubElement(root, 'license', {'file': 'LICENSE.txt', 'mime-type': 'text/plain'})
+    # MIT attribution is a notice, not an extra end-user licence agreement.
+    ET.SubElement(root, 'readme', {'file': 'LICENSE.txt', 'mime-type': 'text/plain'})
     outline = ET.SubElement(root, 'choices-outline')
     choices = [('remove', 'Remove Mixing Desk Audio', 'Removes only the virtual-audio driver. Restart afterwards. Sessions and presets are preserved.', True)] if removal else [
         ('app', 'Mixing Desk', 'Installs the app in Applications. Quit Mixing Desk before continuing.', True),
@@ -69,7 +70,13 @@ def distribution(work, destination, version, removal=False):
         choice = ET.SubElement(root, 'choice', attrs)
         identifier = f'local.mixingdesk.pkg.{name}'
         ET.SubElement(choice, 'pkg-ref', {'id': identifier})
-        ref = ET.SubElement(root, 'pkg-ref', {'id': identifier, 'onConclusion': 'RequireRestart' if name != 'app' else 'None'})
+        ref = ET.SubElement(root, 'pkg-ref', {'id': identifier, 'onConclusion': 'RequireRestart' if removal else 'None'})
+        if name == 'driver':
+            # Installer otherwise includes the restart requirement even when
+            # this enabled, optional choice is not selected.
+            # onConclusionScript is an expression and overrides onConclusion:
+            # https://developer.apple.com/library/archive/documentation/DeveloperTools/Reference/DistributionDefinitionRef/Chapters/Distribution_XML_Ref.html
+            ref.set('onConclusionScript', "choices['driver'].selected ? 'RequireRestart' : 'None'")
         ref.text = f'{name}.pkg'
         close_ref = ET.SubElement(root, 'pkg-ref', {'id': identifier})
         ET.SubElement(ET.SubElement(close_ref, 'must-close'), 'app', {'id': 'local.mixingdesk.app'})

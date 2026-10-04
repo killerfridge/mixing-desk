@@ -21,6 +21,9 @@ for line in (directory / 'SHA256SUMS.txt').read_text().splitlines():
 for removal in [False, True]:
     filename = f'Remove-MixingDesk-Audio-{version}.pkg' if removal else f'MixingDesk-{version}-arm64.pkg'
     package = directory / filename
+    # The CLI query reports static metadata, not the GUI's dynamic choice script.
+    restart = subprocess.check_output(['/usr/sbin/installer', '-query', 'RestartAction', '-pkg', package, '-target', '/'], text=True).strip()
+    assert restart == ('RequireRestart' if removal else 'None'), f'Unexpected default restart action: {restart}'
     with tempfile.TemporaryDirectory(prefix='mixingdesk-package-') as temporary:
         expanded = Path(temporary) / 'expanded'
         subprocess.run(['pkgutil', '--expand-full', package, expanded], check=True)
@@ -35,6 +38,8 @@ for removal in [False, True]:
         if not removal:
             assert choices['driver'].get('start_selected') == 'false'
             assert choices['driver'].get('selected') is None, 'Driver choice must remain user-selectable'
+            driver_ref = distribution.find("pkg-ref[@id='local.mixingdesk.pkg.driver'][@onConclusionScript]")
+            assert driver_ref is not None, 'Optional driver needs a conditional restart requirement'
         for name in expected_choices:
             info = ET.parse(expanded / f'{name}.pkg/PackageInfo').getroot()
             assert info.get('identifier') == f'local.mixingdesk.pkg.{name}'
