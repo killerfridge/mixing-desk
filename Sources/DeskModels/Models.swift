@@ -141,7 +141,22 @@ public struct Session: Codable, Equatable, Sendable {
     public var strips: [ChannelStrip] = []
     public var buses: [Bus] = []
     public var routes: [OutputRoute] = []
+    public var pipelineLayout: PipelineLayout?
     public init() {}
+    private enum CodingKeys: String, CodingKey { case version, name, monitorDeviceUID, bufferFrames, monitoringMode, strips, buses, routes, pipelineLayout }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try c.decode(Int.self, forKey: .version)
+        name = try c.decode(String.self, forKey: .name)
+        monitorDeviceUID = try c.decode(String.self, forKey: .monitorDeviceUID)
+        bufferFrames = try c.decode(Int.self, forKey: .bufferFrames)
+        monitoringMode = try c.decode(String.self, forKey: .monitoringMode)
+        strips = try c.decode([ChannelStrip].self, forKey: .strips)
+        buses = try c.decode([Bus].self, forKey: .buses)
+        routes = try c.decode([OutputRoute].self, forKey: .routes)
+        // Corrupt or future presentation metadata must never lose audio settings.
+        pipelineLayout = (try? c.decodeIfPresent(PipelineLayout.self, forKey: .pipelineLayout))?.sanitized
+    }
     public static func starter() -> Session {
         var session = Session()
         session.buses = [Bus(name: "Monitor", kind: "monitor"), Bus(name: "Call", kind: "call"), Bus(name: "Stream")]
@@ -213,7 +228,7 @@ public struct Session: Codable, Equatable, Sendable {
     }
     public func data() throws -> Data { _ = try validated(); let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]; return try encoder.encode(self) }
     public static func decode(_ data: Data) throws -> Session { try JSONDecoder().decode(Session.self, from: data).validated() }
-    public func dictionary() throws -> [String: Any] { try JSONSerialization.jsonObject(with: data()) as! [String: Any] }
+    public func dictionary() throws -> [String: Any] { try JSONSerialization.jsonObject(with: audioSession.data()) as! [String: Any] }
     public mutating func removeStrip(_ id: String) {
         strips.removeAll { $0.id == id }; routes.removeAll { $0.sourceKind == "strip" && $0.sourceID == id }
         for i in buses.indices where buses[i].excludedStripID == id { buses[i].excludedStripID = "" }

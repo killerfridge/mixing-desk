@@ -28,6 +28,14 @@ The setup guide helps you choose an output and sources. Nothing is assigned to a
 
 See the [illustrated quick start](docs/QUICK_START.md), [technical reference](docs/REFERENCE.md), and [compatibility/validation record](docs/VALIDATION.md).
 
+## Route visually with Pipeline
+
+The new **Pipeline** tab adds an editable graph alongside Desk and Patching. Drag connections between channels, buses, and outputs; inspect a cable to set its level and output channels. Move blocks, pan and zoom, or use the connection menus and routing undo/redo. Pipeline and Patching share the same session.
+
+![Pipeline showing sources, buses, and hardware/virtual outputs](docs/images/pipeline.png)
+
+Read the [Pipeline routing guide](docs/PIPELINE.md). This feature is on the development branch; the existing `v0.5.0-beta.1` tag and draft downloads are unchanged.
+
 ## What the beta supports
 
 Hardware and application sources, separate buses, mix-minus, direct recording outputs, persistent named virtual devices, a built-in three-band EQ, and up to four ordered inserts per channel or bus. Sessions and presets are portable versioned JSON; unavailable bindings remain offline.

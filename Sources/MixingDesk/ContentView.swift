@@ -14,6 +14,7 @@ enum DeskStyle {
 struct ContentView: View {
     @EnvironmentObject var store: DeskStore
     @State private var page = "Desk"
+    init(initialPage: String = "Desk") { _page = State(initialValue: initialPage) }
     @State private var presetName = ""
     @State private var savingPreset = false
     @AppStorage("deskDensity") private var density = "Automatic"
@@ -28,7 +29,7 @@ struct ContentView: View {
             header(compact: compact)
             Divider().overlay(DeskStyle.line)
             HStack(spacing: 7) {
-                ForEach([("Desk", "slider.vertical.3"), ("Patching", "square.grid.3x3"), ("Virtual Devices", "waveform.path"), ("Setup", "gearshape")], id: \.0) { item in
+                ForEach([("Desk", "slider.vertical.3"), ("Patching", "square.grid.3x3"), ("Pipeline", "point.3.connected.trianglepath.dotted"), ("Virtual Devices", "waveform.path"), ("Setup", "gearshape")], id: \.0) { item in
                     Button { page = item.0 } label: {
                         Label(item.0, systemImage: item.1).font(.system(size: 12, weight: .semibold)).padding(.horizontal, compact ? 9 : 14).padding(.vertical, compact ? 7 : 9)
                             .foregroundStyle(page == item.0 ? DeskStyle.accent : .secondary)
@@ -43,6 +44,7 @@ struct ContentView: View {
             Group {
                 switch page {
                 case "Patching": PatchView()
+                case "Pipeline": PipelineView()
                 case "Virtual Devices": VirtualDevicesView()
                 case "Setup": SetupView()
                 default: MixerView()
@@ -158,7 +160,7 @@ struct ChannelStripView: View {
                     Button("Move Left") { move(-1) }
                     Button("Move Right") { move(1) }
                     Divider()
-                    Button("Remove Channel", role: .destructive) { store.edit { $0.removeStrip(strip.id) } }
+                    Button("Remove Channel", role: .destructive) { store.removePipelineNode(PipelineNodeID(.strip, strip.id)) }
                 } label: { Image(systemName: "ellipsis") }.menuStyle(.borderlessButton).frame(width: 18)
             }
             Button { editing = true } label: {
@@ -201,7 +203,7 @@ struct ChannelStripView: View {
             }
             if strip.role == "guitar" && store.session.monitoringMode == "directGuitar" { Text("HEADPHONES: HARDWARE").font(.system(size: 8, weight: .bold)).foregroundStyle(accent) }
         }.padding(compact ? 10 : 13).background(DeskStyle.panel, in: RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).stroke(DeskStyle.line))
-            .sheet(isPresented: $editing) { ChannelSettingsView(strip: $strip).environmentObject(store) }
+            .sheet(isPresented: $editing) { PipelineChannelEditor(strip: strip).environmentObject(store) }
             .sheet(isPresented: $editingInserts) { InsertEditor(inserts: $strip.inserts, ownerName: strip.name, isBus: false) }
     }
     private func move(_ direction: Int) { guard let i = store.session.strips.firstIndex(where: { $0.id == strip.id }) else { return }; let j = i+direction; guard store.session.strips.indices.contains(j) else { return }; store.edit { $0.strips.swapAt(i,j) } }
@@ -234,7 +236,7 @@ struct BusStripView: View {
                 }
                 if !store.session.routes.contains(where: { $0.sourceKind == "bus" && $0.sourceID == bus.id }) { Text("No output patched").font(.system(size: 10)).foregroundStyle(.tertiary) }
             }.frame(maxWidth: .infinity, minHeight: compact ? 24 : 68, alignment: .topLeading)
-            if bus.kind != "monitor" { Button("Remove Bus", role: .destructive) { store.edit { $0.removeBus(bus.id) } }.buttonStyle(.plain).font(.system(size: 9)).foregroundStyle(.secondary) }
+            if bus.kind != "monitor" { Button("Remove Bus", role: .destructive) { store.removePipelineNode(PipelineNodeID(.bus, bus.id)) }.buttonStyle(.plain).font(.system(size: 9)).foregroundStyle(.secondary) }
         }.padding(compact ? 10 : 13).background(DeskStyle.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).stroke(DeskStyle.accent.opacity(0.14)))
             .sheet(isPresented: $editingInserts) { InsertEditor(inserts: $bus.inserts, ownerName: bus.name, isBus: true) }
     }

@@ -88,3 +88,5 @@ for id in ["FFEEDDCCBBAA99887766554433221100", vst.identifier.lowercased()] {
     var invalid = vst; invalid.identifier = id; session.strips[0].inserts = [invalid]; rejects(session)
 }
 print("PASS: mixed EQ/AUv2/VST3 persistence, missing VST3 identity, class/state/parameter validation and VST3 bus routing restrictions.")
+
+try pipelineModelChecks()

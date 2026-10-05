@@ -71,6 +71,10 @@ struct LoadSnapshot: Equatable {
     @Published var clockMembers: [ClockMember] = []
     @Published var presets: [URL] = []
     @Published var selectedStrip: String?
+    @Published var routingHistory = RoutingHistory()
+    var routingGesture: (name: String, before: Session, draft: Session)?
+    @Published private(set) var sessionGeneration = UUID()
+    private(set) var audioConfigurationUpdates = 0
     @Published var plugins: [PluginChoice] = []
     @Published var scanningPlugins = false
     @Published var loadingPlugin = false
@@ -232,11 +236,17 @@ struct LoadSnapshot: Equatable {
         guard session != lastApplied else { return }
         do {
             _ = try session.validated()
+            if session.audioSession == lastApplied.audioSession {
+                lastApplied.pipelineLayout = session.pipelineLayout
+                scheduleSave()
+                return
+            }
             let currentIDs = Set((session.strips.flatMap(\.inserts) + session.buses.flatMap(\.inserts)).map(\.id))
             for id in Array(pluginWindows.keys) where !currentIDs.contains(id) { pluginWindows[id]?.didClose = nil; pluginWindows[id]?.close(); pluginWindows.removeValue(forKey: id) }
             if session.strips.map(\.source) != lastApplied.strips.map(\.source) || session.strips.map(\.solo) != lastApplied.strips.map(\.solo) || session.strips.map(\.role) != lastApplied.strips.map(\.role) || session.buses.map(\.excludedStripID) != lastApplied.buses.map(\.excludedStripID) || session.monitoringMode != lastApplied.monitoringMode { pluginStateEpoch = UUID(); closePluginWindows() }
             let topologyChanged = session.monitorDeviceUID != lastApplied.monitorDeviceUID || session.bufferFrames != lastApplied.bufferFrames || session.strips.map(\.source) != lastApplied.strips.map(\.source) || Set(session.routes.map(\.destinationUID)) != Set(lastApplied.routes.map(\.destinationUID))
             if !configuring {
+                audioConfigurationUpdates += 1
                 if topologyChanged && running { startNow() }
                 else {
                     let data = try session.dictionary(), audio = audio
@@ -244,13 +254,17 @@ struct LoadSnapshot: Equatable {
                 }
             }
             lastApplied = session
-            pendingSave?.cancel()
-            let work = DispatchWorkItem { [weak self] in self?.saveLastSession() }; pendingSave = work; DispatchQueue.main.asyncAfter(deadline: .now()+0.5, execute: work)
+            scheduleSave()
         } catch { self.error = error.localizedDescription; session = lastApplied }
     }
     func edit(_ change: (inout Session) -> Void) { change(&session); apply() }
+    private func scheduleSave() {
+        pendingSave?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.saveLastSession() }
+        pendingSave = work; DispatchQueue.main.asyncAfter(deadline: .now()+0.5, execute: work)
+    }
     func chooseMonitor(_ uid: String) {
-        edit { s in
+        routeEdit("Change Monitor Output") { s in
             let old = s.monitorDeviceUID; s.monitorDeviceUID = uid
             if let bus = s.buses.first(where: { $0.kind == "monitor" }) {
                 s.routes.removeAll { $0.sourceKind == "bus" && $0.sourceID == bus.id && $0.destinationUID == old }
@@ -261,8 +275,8 @@ struct LoadSnapshot: Equatable {
             }
         }
     }
-    func addStrip() { guard session.strips.count < 64 else { return }; edit { s in var strip = ChannelStrip(name: "Channel \(s.strips.count + 1)"); strip.sends = s.buses.map { Send(busID: $0.id, gainDB: -90, preFader: $0.kind == "monitor") }; s.strips.append(strip) } }
-    func addBus() { edit { $0.buses.append(Bus(name: "Bus \($0.buses.count + 1)")) } }
+    func addStrip() { routeEdit("Add Channel") { s in var strip = ChannelStrip(name: "Channel \(s.strips.count + 1)"); strip.sends = s.buses.map { Send(busID: $0.id, gainDB: -90, preFader: $0.kind == "monitor") }; s.strips.append(strip) } }
+    func addBus() { routeEdit("Add Bus") { $0.buses.append(Bus(name: "Bus \($0.buses.count + 1)")) } }
     func sourceName(_ source: SourceBinding) -> String {
         if source.kind == "application" { return apps.first { $0.bundleID == source.bundleID }?.name ?? (source.bundleID.isEmpty ? "Choose application" : "\(source.bundleID) · offline") }
         return devices.first { $0.uid == source.deviceUID }?.name ?? (source.deviceUID.isEmpty ? "Choose input" : "Input offline")
@@ -386,7 +400,7 @@ struct LoadSnapshot: Equatable {
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.json]; panel.allowsMultipleSelection = false
         if panel.runModal() == .OK, let url = panel.url { load(url) }
     }
-    func load(_ url: URL) { do { let next = try Session.decode(Data(contentsOf: url)); pluginStateEpoch = UUID(); closePluginWindows(); wantsRunning = false; stopAudio(); let audio = audio; audioQueue.async { audio.unloadPlugins() }; session = next; lastApplied = next; saveLastSession() } catch { self.error = error.localizedDescription } }
+    func load(_ url: URL) { do { let next = try Session.decode(Data(contentsOf: url)); routingHistory.clear(); routingGesture = nil; sessionGeneration = UUID(); pluginStateEpoch = UUID(); closePluginWindows(); wantsRunning = false; stopAudio(); let audio = audio; audioQueue.async { audio.unloadPlugins() }; session = next; lastApplied = next; saveLastSession() } catch { self.error = error.localizedDescription } }
     func exportSession() { capturePluginStates { self.exportSessionSnapshot() } }
     private func exportSessionSnapshot() {
         let panel = NSSavePanel(); panel.allowedContentTypes = [.json]; panel.nameFieldStringValue = "\(session.name).json"

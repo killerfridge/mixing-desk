@@ -33,7 +33,12 @@ import DeskModels
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try render(ContentView().environmentObject(store), size: NSSize(width: 1180, height: 740), to: directory.appendingPathComponent("desk.png"))
         try render(SetupGuide().environmentObject(store), size: NSSize(width: 706, height: 626), to: directory.appendingPathComponent("setup.png"))
-        print("PASS: first-run setup, saved-session preservation, mono output patch; rendered actual SwiftUI desk/setup views without hardware IO or personal session data")
+        PipelineFixture.populate(store)
+        try render(ContentView(initialPage: "Pipeline").environmentObject(store), size: NSSize(width: 1280, height: 900), to: directory.appendingPathComponent("pipeline.png"))
+        try render(ContentView(initialPage: "Pipeline").environmentObject(store), size: NSSize(width: 800, height: 520), to: directory.appendingPathComponent("pipeline-compact.png"))
+        PipelineFixture.populate(store, dense: true)
+        try render(ContentView(initialPage: "Pipeline").environmentObject(store), size: NSSize(width: 1280, height: 900), to: directory.appendingPathComponent("pipeline-dense.png"))
+        print("PASS: first-run setup, saved-session preservation, mono output patch; rendered actual SwiftUI desk, setup and simple/compact/dense pipeline views without hardware IO or personal session data")
     }
 
     @MainActor static func render<V: View>(_ view: V, size: NSSize, to url: URL) throws {
