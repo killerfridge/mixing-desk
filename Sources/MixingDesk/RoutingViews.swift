@@ -5,6 +5,7 @@ struct ChannelSettingsView: View {
     @EnvironmentObject var store: DeskStore
     @Environment(\.dismiss) private var dismiss
     @Binding var strip: ChannelStrip
+    var onCommit: ((ChannelStrip) -> Bool)? = nil
     private var count: Int { strip.source.kind == "application" ? 2 : store.devices.first { $0.uid == strip.source.deviceUID }?.inputs.count ?? 0 }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -54,8 +55,8 @@ struct ChannelSettingsView: View {
                 }
                 Text("Choose the input channels carrying your intended signal. Mixing Desk does not change your audio interface’s internal routing.").font(.caption).foregroundStyle(.secondary)
             }.formStyle(.grouped)
-            HStack { Spacer(); Button("Done") { dismiss() }.buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction) }
-        }.padding(24).frame(width: 520, height: 620)
+            HStack { if onCommit != nil { Button("Cancel") { dismiss() } }; Spacer(); Button("Done") { if onCommit?(strip) ?? true { dismiss() } }.buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction) }
+        }.padding(24).frame(width: 520, height: 620).pipelineErrorAlert()
     }
     private func channelName(_ index: Int) -> String {
         if strip.source.kind == "device", let device = store.devices.first(where: { $0.uid == strip.source.deviceUID }), device.inputs.indices.contains(index) { return "\(index+1) · \(device.inputs[index])" }
@@ -106,12 +107,12 @@ struct PatchView: View {
                                         Text("Channels \(route.channels.map { String($0+1) }.joined(separator: " / "))").font(.caption).foregroundStyle(.secondary)
                                     }
                                     Spacer()
-                                    Button(role: .destructive) { store.edit { $0.routes.removeAll { $0.id == route.id } } } label: { Image(systemName: "xmark") }.buttonStyle(.plain).foregroundStyle(.secondary)
+                                    Button(role: .destructive) { store.disconnect(.route(route.id)) } label: { Image(systemName: "xmark") }.buttonStyle(.plain).foregroundStyle(.secondary)
                                 }
                                 HStack(spacing: 12) {
-                                    if route.sourceKind == "strip" { Toggle("Pre-fader", isOn: $route.preFader).toggleStyle(.checkbox).font(.caption) }
+                                    if route.sourceKind == "strip" { Toggle("Pre-fader", isOn: Binding(get: { route.preFader }, set: { value in var next = route; next.preFader = value; store.saveRoute(next) })).toggleStyle(.checkbox).font(.caption) }
                                     Text("LEVEL").font(.system(size: 9, weight: .semibold)).foregroundStyle(.secondary)
-                                    ResettableSlider(value: $route.gainDB, range: -90...12, label: "Output route level").frame(maxWidth: 220)
+                                    ResettableSlider(value: Binding(get: { route.gainDB }, set: { value in var next = route; next.gainDB = value; store.saveRoute(next) }), range: -90...12, label: "Output route level", onEditingChanged: { store.trackRoutingGesture($0, name: "Output Route Level") }).frame(maxWidth: 220)
                                     Text(route.gainDB <= -90 ? "−∞" : String(format: "%+.1f dB", route.gainDB)).font(.system(size: 10, design: .monospaced)).frame(width: 60)
                                     Spacer()
                                 }
@@ -126,25 +127,15 @@ struct PatchView: View {
     private func sourceName(_ route: OutputRoute) -> String { route.sourceKind == "bus" ? store.session.buses.first { $0.id == route.sourceID }?.name ?? "Bus" : store.session.strips.first { $0.id == route.sourceID }?.name ?? "Channel" }
     private func send(kind: String, id: String, busID: String) -> Send? { kind == "strip" ? store.session.strips.first { $0.id == id }?.sends.first { $0.busID == busID } : store.session.buses.first { $0.id == id }?.sends.first { $0.busID == busID } }
     private func patch(kind: String, id: String, busID: String, mode: String) {
-        store.edit { s in
-            func mutate(_ sends: inout [Send]) {
-                if let index = sends.firstIndex(where: { $0.busID == busID }) {
-                    if mode == "toggle" { sends.remove(at: index) }
-                    else if mode == "pre" { sends[index].preFader = true }
-                    else if mode == "post" { sends[index].preFader = false }
-                    else { sends[index].gainDB = Double(mode) ?? 0 }
-                } else { sends.append(Send(busID: busID, gainDB: Double(mode) ?? 0, preFader: mode == "pre")) }
-            }
-            if kind == "strip", let index = s.strips.firstIndex(where: { $0.id == id }) { mutate(&s.strips[index].sends) }
-            if kind == "bus", let index = s.buses.firstIndex(where: { $0.id == id }) { mutate(&s.buses[index].sends) }
-        }
+        store.patchSend(from: PipelineNodeID(kind == "strip" ? .strip : .bus, id), to: busID, mode: mode)
     }
+
     private func matrixRow(id: String, name: String, kind: String, color: Color) -> some View {
         HStack(spacing: 0) {
             HStack { RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 3, height: 20); Text(name).font(.system(size: 12)); Spacer(); Text(kind.uppercased()).font(.system(size: 8, weight: .semibold)).foregroundStyle(.tertiary) }.frame(width: 210).padding(.trailing, 0)
             ForEach(store.session.buses) { bus in
                 let connection = send(kind: kind, id: id, busID: bus.id)
-                let isExcluded = kind == "strip" && bus.excludedStripID == id
+                let isExcluded = kind == "strip" && store.session.strips.first(where: { $0.id == id }).map { PipelineGraph.excludes(bus, source: $0.source, in: store.session) } == true
                 Button { patch(kind: kind, id: id, busID: bus.id, mode: "toggle") } label: {
                     VStack(spacing: 3) {
                         Image(systemName: kind == "bus" && id == bus.id ? "minus" : isExcluded ? "nosign" : connection == nil ? "plus" : "circle.fill").font(.system(size: 12)).foregroundStyle(isExcluded ? .orange : connection == nil ? .white.opacity(0.16) : color)
@@ -182,8 +173,8 @@ struct AddRouteView: View {
                 Picker(stereo ? "Left channel" : "Channel", selection: $left) { ForEach(outputs.indices, id: \.self) { Text("\($0+1) · \(outputs[$0])").tag($0) } }
                 if stereo { Picker("Right channel", selection: $right) { ForEach(outputs.indices, id: \.self) { Text("\($0+1) · \(outputs[$0])").tag($0) } } }
             }.formStyle(.grouped)
-            HStack { Button("Cancel") { dismiss() }; Spacer(); Button("Connect") { store.edit { s in var route = OutputRoute(sourceKind: kind, sourceID: sourceID, destinationUID: deviceUID, channels: stereo ? [left,right] : [left]); route.preFader = preFader; s.routes.append(route) }; dismiss() }.buttonStyle(.borderedProminent).disabled(sourceID.isEmpty || outputs.isEmpty || (stereo && left == right)) }
-        }.padding(24).frame(width: 480, height: 430)
+            HStack { Button("Cancel") { dismiss() }; Spacer(); Button("Connect") { var route = OutputRoute(sourceKind: kind, sourceID: sourceID, destinationUID: deviceUID, channels: stereo ? [left,right] : [left]); route.preFader = preFader; if store.saveRoute(route) { dismiss() } }.buttonStyle(.borderedProminent).disabled(sourceID.isEmpty || outputs.isEmpty || (stereo && left == right)) }
+        }.padding(24).frame(width: 480, height: 430).pipelineErrorAlert()
     }
 }
 

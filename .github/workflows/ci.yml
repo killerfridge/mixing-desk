@@ -36,6 +36,7 @@ jobs:
           ./scripts/build.sh
           ./scripts/test.sh --soak
           ./scripts/ui-status-test.sh
+          bash scripts/pipeline-test.sh
           bash scripts/screenshots.sh build/documentation-images
       - name: Xcode build and XCTest
         run: xcodebuild -project MixingDesk.xcodeproj -scheme MixingDesk -configuration Release -destination 'platform=macOS,arch=arm64' -derivedDataPath build/Xcode build test CODE_SIGN_IDENTITY=-

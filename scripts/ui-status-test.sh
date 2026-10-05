@@ -13,7 +13,7 @@ for desk_source in Sources/MixingDesk/*.swift; do
 done
 xcrun swiftc -O -parse-as-library -target arm64-apple-macosx14.4 \
     -I "$desk_bin/Modules" -I "$desk_bin" -I Sources/DeskAudio/include \
-    "${desk_sources[@]}" Tests/UIStatusTests.swift \
+    "${desk_sources[@]}" Tests/PipelineFixture.swift Tests/UIStatusTests.swift \
     "$desk_bin"/DeskModels.build/*.o "$desk_bin"/DeskAudio.build/*.o "$desk_bin"/DeskAudio.build/VST3SDK/pluginterfaces/base/*.o \
     -lc++ -framework AudioToolbox -framework AudioUnit -framework CoreAudioKit -framework CoreAudio -framework AppKit \
     -o build/ui-status-tests

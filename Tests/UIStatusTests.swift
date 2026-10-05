@@ -65,10 +65,12 @@ import DeskModels
             _exit(124)
         }
         app.finishLaunching()
+        let pipeline = CommandLine.arguments.contains("--pipeline")
+        if pipeline { PipelineFixture.populate(store, dense: CommandLine.arguments.contains("--dense")); store.wantsRunning = true; store.receiveStatus(status()) }
         let desk = NSWindow(contentRect: NSRect(x: 30, y: 50, width: 1180, height: 740),
                             styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         desk.title = "Mixing Desk · UI performance test"
-        desk.contentView = NSHostingView(rootView: ContentView().environmentObject(store).preferredColorScheme(.dark))
+        desk.contentView = NSHostingView(rootView: ContentView(initialPage: pipeline ? "Pipeline" : "Desk").environmentObject(store).preferredColorScheme(.dark))
         desk.makeKeyAndOrderFront(nil)
         var plugin: PluginWindow?
         if let flag = CommandLine.arguments.firstIndex(of: "--au"), flag + 1 < CommandLine.arguments.count {
@@ -100,6 +102,7 @@ import DeskModels
                 let cpu = Double(clock() - cpuStart) / Double(CLOCKS_PER_SEC)
                 let sorted = gaps.sorted()
                 print(String(format: "UI BENCHMARK: ticks=300 deskNotifications=%d CPU=%.3fs elapsed=%.3fs CPU=%.1f%% heartbeatP95=%.2fms max=%.2fms", deskChanges, cpu, elapsed, cpu / elapsed * 100, sorted[sorted.count * 95 / 100], sorted.last ?? 0))
+                precondition(deskChanges == 0, "Meter playback must not invalidate the graph")
                 app.stop(nil)
                 NSEvent.startPeriodicEvents(afterDelay: 0, withPeriod: 0.01)
             }

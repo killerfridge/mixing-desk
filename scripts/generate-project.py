@@ -37,10 +37,10 @@ def sources(paths):
 
 specs = {
     "DeskAudio": ("com.apple.product-type.library.static", "libDeskAudio.a", sources(["Sources/DeskAudio/Engine.cpp","Sources/DeskAudio/AudioHost.mm","Sources/DeskAudio/AudioUnitHost.mm","Sources/DeskAudio/PluginHost.mm","Sources/DeskAudio/VST3Host.mm","Sources/DeskAudio/VST3Identifiers.cpp","Sources/DeskAudio/VST3SDK/pluginterfaces/base/funknown.cpp"]), []),
-    "DeskModels": ("com.apple.product-type.library.static", "libDeskModels.a", sources(["Sources/DeskModels/Models.swift"]), []),
+    "DeskModels": ("com.apple.product-type.library.static", "libDeskModels.a", sources(sorted(str(p.relative_to(ROOT)) for p in (ROOT/"Sources/DeskModels").glob("*.swift"))), []),
     "MixingDesk": ("com.apple.product-type.application", "Mixing Desk.app", sources(sorted(str(p.relative_to(ROOT)) for p in (ROOT/"Sources/MixingDesk").glob("*.swift"))), ["DeskAudio","DeskModels"]),
     "MixingDeskAudio": ("com.apple.product-type.bundle", "MixingDeskAudio.driver", sources(["Driver/Driver.mm"]), []),
-    "DeskModelsTests": ("com.apple.product-type.bundle.unit-test", "DeskModelsTests.xctest", sources(["Tests/DeskModelsTests/SessionTests.swift"]), ["DeskModels"]),
+    "DeskModelsTests": ("com.apple.product-type.bundle.unit-test", "DeskModelsTests.xctest", sources(sorted(str(p.relative_to(ROOT)) for p in (ROOT/"Tests/DeskModelsTests").glob("*.swift"))), ["DeskModels"]),
 }
 sources(["Sources/DeskAudio/Engine.hpp","Sources/DeskAudio/AudioUnitHost.hpp","Sources/DeskAudio/PluginHost.hpp","Sources/DeskAudio/VST3Support.hpp","Sources/DeskAudio/Equalizer.hpp","Sources/DeskAudio/InsertProcessor.hpp","Sources/DeskAudio/include/DeskAudio.h","Sources/DeskAudio/include/module.modulemap","Sources/DeskAudio/DriverProtocol.h","Sources/DeskAudio/DriverStatus.hpp","Driver/TimestampRing.hpp","Resources/Info.plist","Driver/Info.plist","Tests/EngineTests.cpp","Tests/EQChecks.hpp","Tests/HostedInsertChecks.hpp","Tests/AudioUnitTests.mm","Tests/DriverTests.mm"])
 app_resources=sources(["Sources/DeskAudio/VST3SDK/pluginterfaces/LICENSE.txt", "LICENSE", "Resources/MixingDesk.icns"])

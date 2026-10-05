@@ -14,6 +14,7 @@ enum DeskStyle {
 struct ContentView: View {
     @EnvironmentObject var store: DeskStore
     @State private var page = "Desk"
+    init(initialPage: String = "Desk") { _page = State(initialValue: initialPage) }
     @State private var presetName = ""
     @State private var savingPreset = false
     @AppStorage("deskDensity") private var density = "Automatic"
@@ -28,7 +29,7 @@ struct ContentView: View {
             header(compact: compact)
             Divider().overlay(DeskStyle.line)
             HStack(spacing: 7) {
-                ForEach([("Desk", "slider.vertical.3"), ("Patching", "square.grid.3x3"), ("Virtual Devices", "waveform.path"), ("Setup", "gearshape")], id: \.0) { item in
+                ForEach([("Desk", "slider.vertical.3"), ("Patching", "square.grid.3x3"), ("Pipeline", "point.3.connected.trianglepath.dotted"), ("Virtual Devices", "waveform.path"), ("Setup", "gearshape")], id: \.0) { item in
                     Button { page = item.0 } label: {
                         Label(item.0, systemImage: item.1).font(.system(size: 12, weight: .semibold)).padding(.horizontal, compact ? 9 : 14).padding(.vertical, compact ? 7 : 9)
                             .foregroundStyle(page == item.0 ? DeskStyle.accent : .secondary)
@@ -43,6 +44,7 @@ struct ContentView: View {
             Group {
                 switch page {
                 case "Patching": PatchView()
+                case "Pipeline": PipelineView()
                 case "Virtual Devices": VirtualDevicesView()
                 case "Setup": SetupView()
                 default: MixerView()
@@ -158,7 +160,7 @@ struct ChannelStripView: View {
                     Button("Move Left") { move(-1) }
                     Button("Move Right") { move(1) }
                     Divider()
-                    Button("Remove Channel", role: .destructive) { store.edit { $0.removeStrip(strip.id) } }
+                    Button("Remove Channel", role: .destructive) { store.removePipelineNode(PipelineNodeID(.strip, strip.id)) }
                 } label: { Image(systemName: "ellipsis") }.menuStyle(.borderlessButton).frame(width: 18)
             }
             Button { editing = true } label: {
@@ -192,8 +194,14 @@ struct ChannelStripView: View {
                     if let bus = store.session.buses.first(where: { $0.id == send.busID }) {
                         HStack(spacing: 4) {
                             Text(bus.name).font(.system(size: 10)).lineLimit(1).frame(width: 44, alignment: .leading)
-                            ResettableSlider(value: $send.gainDB, range: -90...12, label: "Send to \(bus.name)")
-                            Button(send.preFader ? "PRE" : "POST") { send.preFader.toggle() }.font(.system(size: 8, weight: .semibold)).buttonStyle(.plain).foregroundStyle(send.preFader ? accent : .secondary).frame(width: 28)
+                            ResettableSlider(value: Binding(get: { send.gainDB }, set: { gain in
+                                var next = send; next.gainDB = gain
+                                store.setSend(from: PipelineNodeID(.strip, strip.id), to: bus.id, value: next)
+                            }), range: -90...12, label: "Send to \(bus.name)", onEditingChanged: { store.trackRoutingGesture($0, name: "Send Level") })
+                            Button(send.preFader ? "PRE" : "POST") {
+                                var next = send; next.preFader.toggle()
+                                store.setSend(from: PipelineNodeID(.strip, strip.id), to: bus.id, value: next)
+                            }.font(.system(size: 8, weight: .semibold)).buttonStyle(.plain).foregroundStyle(send.preFader ? accent : .secondary).frame(width: 28)
                         }.help(send.gainDB <= -90 ? "Send off" : String(format: "Send %+.1f dB", send.gainDB))
                     }
                 }
@@ -201,7 +209,7 @@ struct ChannelStripView: View {
             }
             if strip.role == "guitar" && store.session.monitoringMode == "directGuitar" { Text("HEADPHONES: HARDWARE").font(.system(size: 8, weight: .bold)).foregroundStyle(accent) }
         }.padding(compact ? 10 : 13).background(DeskStyle.panel, in: RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).stroke(DeskStyle.line))
-            .sheet(isPresented: $editing) { ChannelSettingsView(strip: $strip).environmentObject(store) }
+            .sheet(isPresented: $editing) { PipelineChannelEditor(strip: strip).environmentObject(store) }
             .sheet(isPresented: $editingInserts) { InsertEditor(inserts: $strip.inserts, ownerName: strip.name, isBus: false) }
     }
     private func move(_ direction: Int) { guard let i = store.session.strips.firstIndex(where: { $0.id == strip.id }) else { return }; let j = i+direction; guard store.session.strips.indices.contains(j) else { return }; store.edit { $0.strips.swapAt(i,j) } }
@@ -211,11 +219,17 @@ struct BusStripView: View {
     @Environment(\.deskCompact) private var compact
     @Environment(\.deskFaderHeight) private var faderHeight
     @Binding var bus: Bus
+    @State private var nameDraft: String
+    @FocusState private var editingName: Bool
+    init(bus: Binding<Bus>) { _bus = bus; _nameDraft = State(initialValue: bus.wrappedValue.name) }
     @State private var editingInserts = false
     var body: some View {
         VStack(spacing: compact ? 8 : 14) {
             RoundedRectangle(cornerRadius: 3).fill(DeskStyle.accent.opacity(0.7)).frame(height: 4)
-            TextField("Bus", text: $bus.name).textFieldStyle(.plain).font(.system(size: 12, weight: .bold)).multilineTextAlignment(.center)
+            TextField("Bus", text: $nameDraft).textFieldStyle(.plain).font(.system(size: 12, weight: .bold)).multilineTextAlignment(.center)
+                .focused($editingName).onSubmit(saveName)
+                .onChange(of: editingName) { _, editing in if !editing { saveName() } }
+                .onChange(of: bus.name) { _, name in if !editingName { nameDraft = name } }
             Text(bus.kind == "monitor" ? "HEADPHONE MIX" : bus.kind == "call" ? "MIX-MINUS" : "OUTPUT BUS").font(.system(size: 9, weight: .medium)).tracking(1).foregroundStyle(DeskStyle.accent)
             InsertButton(inserts: bus.inserts) { editingInserts = true }
             ToggleButton(label: "MUTE", active: $bus.muted, color: .red)
@@ -224,7 +238,9 @@ struct BusStripView: View {
             if bus.kind == "call" {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("EXCLUDE RETURN").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
-                    Picker("Return", selection: $bus.excludedStripID) { Text("None").tag(""); ForEach(store.session.strips) { Text($0.name).tag($0.id) } }.labelsHidden().controlSize(.small)
+                    Picker("Return", selection: Binding(get: { bus.excludedStripID }, set: { id in
+                        store.routeEdit("Change Mix-minus") { s in if let i = s.buses.firstIndex(where: { $0.id == bus.id }) { s.buses[i].excludedStripID = id } }
+                    })) { Text("None").tag(""); ForEach(store.session.strips) { Text($0.name).tag($0.id) } }.labelsHidden().controlSize(.small)
                 }
             } else { Text(bus.kind == "monitor" ? "Solo affects this mix only" : "Independent output level").font(.system(size: 10)).foregroundStyle(.secondary).frame(height: 37) }
             Divider()
@@ -234,9 +250,12 @@ struct BusStripView: View {
                 }
                 if !store.session.routes.contains(where: { $0.sourceKind == "bus" && $0.sourceID == bus.id }) { Text("No output patched").font(.system(size: 10)).foregroundStyle(.tertiary) }
             }.frame(maxWidth: .infinity, minHeight: compact ? 24 : 68, alignment: .topLeading)
-            if bus.kind != "monitor" { Button("Remove Bus", role: .destructive) { store.edit { $0.removeBus(bus.id) } }.buttonStyle(.plain).font(.system(size: 9)).foregroundStyle(.secondary) }
+            if bus.kind != "monitor" { Button("Remove Bus", role: .destructive) { store.removePipelineNode(PipelineNodeID(.bus, bus.id)) }.buttonStyle(.plain).font(.system(size: 9)).foregroundStyle(.secondary) }
         }.padding(compact ? 10 : 13).background(DeskStyle.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 10)).overlay(RoundedRectangle(cornerRadius: 10).stroke(DeskStyle.accent.opacity(0.14)))
             .sheet(isPresented: $editingInserts) { InsertEditor(inserts: $bus.inserts, ownerName: bus.name, isBus: true) }
+    }
+    private func saveName() {
+        store.routeEdit("Rename Bus") { s in if let i = s.buses.firstIndex(where: { $0.id == bus.id }) { s.buses[i].name = nameDraft } }
     }
 }
 private struct EngineLoadView: View {

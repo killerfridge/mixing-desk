@@ -9,6 +9,7 @@ struct ResettableSlider: NSViewRepresentable {
     var defaultValue: Double = 0
     var label: String
     var defaultDescription = "0 dB"
+    var onEditingChanged: ((Bool) -> Void)? = nil
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> ResetSlider {
         let slider = ResetSlider()
@@ -21,6 +22,7 @@ struct ResettableSlider: NSViewRepresentable {
         context.coordinator.parent = self
         slider.minValue = range.lowerBound; slider.maxValue = range.upperBound
         slider.doubleValue = value; slider.defaultValue = defaultValue
+        slider.trackingChanged = onEditingChanged
         slider.setAccessibilityLabel(label)
         slider.toolTip = "Double-click to reset to \(defaultDescription)."
     }
@@ -31,8 +33,11 @@ struct ResettableSlider: NSViewRepresentable {
     }
     final class ResetSlider: NSSlider {
         var defaultValue: Double = 0
+        var trackingChanged: ((Bool) -> Void)?
         override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
         override func mouseDown(with event: NSEvent) {
+            trackingChanged?(true)
+            defer { trackingChanged?(false) }
             if event.clickCount >= 2 {
                 doubleValue = defaultValue
                 if let action { sendAction(action, to: target) }

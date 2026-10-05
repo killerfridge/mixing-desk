@@ -19,6 +19,8 @@ Open `MixingDesk.xcodeproj` for the Xcode workflow. After adding sources or reso
 
 Run meaningful regression tests for the changed behaviour. `scripts/test.sh` covers the engine, a driver test host, synthetic AU/VST3 adapters, and session models; with full Xcode it also runs XCTest. `--soak` is an offline workload equivalent to 60 minutes, not physical-device endurance testing.
 
+After `scripts/build.sh`, run `bash scripts/pipeline-test.sh` for routing transactions, scoped undo, presentation isolation, and session/preset persistence. `--interactive` opens an isolated Pipeline fixture without audio IO. `./scripts/ui-status-test.sh` verifies meter/status isolation; add `--benchmark --pipeline --dense` for a 64-channel/16-bus graph with 503 output routes. `bash scripts/screenshots.sh build/documentation-images` renders actual SwiftUI views at desktop and minimum window sizes using synthetic device names.
+
 ```sh
 python3 scripts/audit-source.py
 python3 scripts/package-release.py

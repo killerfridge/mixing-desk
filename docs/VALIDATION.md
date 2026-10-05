@@ -2,6 +2,18 @@
 
 Environment: Apple Silicon, macOS 26.2, Swift 6.1.2 / macOS 15.5 SDK from Command Line Tools.
 
+## Editable Pipeline feature — 2026-10-05
+
+This feature follows the beta preparation below. It does not modify `v0.5.0-beta.1` or its draft release assets, and introduces no native driver, DSP, or routing-protocol changes.
+
+- The arm64 application build passes with the existing 14.4 deployment target. Engine, driver-host, Apple AUHipass (mono/stereo), synthetic VST3, and standalone model checks pass. The offline soak processed 172,800,000 frames in 59.6 wall seconds; this remains a synthetic workload, not a real-time hardware session.
+- Pipeline model tests cover shared graph projection, deterministic bus ordering, offline output placeholders, old-session loading, malformed layout recovery, source-identity and transitive mix-minus, feedback rejection, plugin-bus restrictions, and scoped undo preserving unrelated faders/effect state.
+- Isolated real-store checks cover gesture completion, mono/stereo mapping validation, direct output routes, offline mapping retention, monitor selection, node removal/restoration, capacity rejection, autosave/export/preset layout round trips, and history clearing on load. Removing an Apple AUHipass node captures its native state before deletion and restores that state on undo. Presentation-only edits submit zero audio configurations.
+- Native SwiftUI interaction checks cover port dragging and click-to-connect, keyboard connection menu selection, Escape cancellation of a pending connection, mono output confirmation, ⌘Z/⇧⌘Z, immediate synchronization with Patching, channel renaming, source and EQ editors, cable inspection, offline mapping controls, canvas scrolling, and moving blocks. The Monitor removal action is disabled and feedback targets explain why they cannot be selected.
+- Actual SwiftUI screenshots were inspected at 1280×900 and the minimum 800×520, plus a 64-strip/16-bus graph with 503 output routes. The compact toolbar reflows; large desks open at readable scale with panning and an explicit Fit All overview. `docs/images/pipeline.png` contains synthetic device names and no personal session data.
+- The status regression passes with 300 changing meter/load readings and no whole-store invalidations. A dense Pipeline benchmark at 30 updates/second produced zero whole-store notifications, 45.9% of one CPU core over 10 seconds, a 20.47 ms heartbeat p95, and 41.51 ms maximum on this development Mac. This is UI performance evidence, not an audio deadline measurement.
+- Physical trackpad pinch and Escape while the mouse button remains held have not been manually exercised. No new live hardware/audio, unplug/reconnect, sleep/wake, or endurance acceptance result is claimed here; the native engine paths are unchanged. [Feature CI](https://github.com/killerfridge/mixing-desk/actions?query=branch%3Acodex%2Fpipeline-view) supplies the macOS 14/26 Xcode and XCTest checks unavailable in local Command Line Tools; the initial feature run passed both generations, including packaging validation.
+
 ## App 0.5.0 beta preparation — 2026-10-04
 
 App version 0.5.0, build 10; driver version 0.1.1, build 2. This work incorporates the merged 0.4.3 plugin dropdown and UI polling fixes.

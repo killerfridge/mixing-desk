@@ -28,4 +28,6 @@ For recording, create a multichannel device and patch direct strip outputs to di
 
 ## 5. Save and stop
 
+Prefer a visual patch bay? Open **Pipeline** to connect the same channels, buses, and output devices by dragging cables or using **Connect to…**. See the [Pipeline guide](PIPELINE.md) for channel mapping, mix-minus highlighting, and undo.
+
 The last valid session is autosaved. Export Session makes a separate backup. Closing the window leaves audio running in the menu bar; Stop Audio or Quit ends it. Opening a saved session stops audio until you choose Start Audio again.
