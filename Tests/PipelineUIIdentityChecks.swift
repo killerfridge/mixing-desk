@@ -90,6 +90,23 @@ import DeskModels
         }))
         precondition(store.session == loaded && store.routingHistory.undoName == lastUndo)
         store.error = nil
+        store.addStrip(withDisabledSends: false)
+        precondition(store.session.strips.last!.sends.isEmpty)
+        let addedSource = PipelineNodeID(.strip, store.session.strips.last!.id)
+        store.setSend(from: addedSource, to: bus, value: Send(busID: bus))
+        precondition(store.session.sends(from: addedSource) == [Send(busID: bus)])
+        store.undoRouting(); store.undoRouting(); precondition(store.session == loaded)
+        var pluginSession = Session.starter()
+        pluginSession.strips[0].inserts = [.audioUnit(identifier: "61756678:68706173:6170706c", name: "Apple AUHipass")]
+        let pluginStore = DeskStore(initialSession: pluginSession, startsMonitoring: false, supportDirectory: temporary.appendingPathComponent("Plugin"))
+        try pluginStore.audio.updateSession(pluginSession.dictionary())
+        let pluginNode = PipelineNodeID(.strip, pluginSession.strips[0].id)
+        pluginStore.removePipelineNode(pluginNode)
+        let captureDeadline = Date().addingTimeInterval(5)
+        while pluginStore.session.strips.contains(where: { $0.id == pluginNode.rawID }), Date() < captureDeadline { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
+        precondition(!pluginStore.session.strips.contains { $0.id == pluginNode.rawID })
+        pluginStore.undoRouting()
+        precondition(pluginStore.session.strips[0].inserts[0].state != nil, "Node removal must snapshot native AU state before undo restores it")
         print("PASS: real store routing transactions, one-action gain drag, presentation isolation, rejection, offline mapping, monitoring and persistence")
         if CommandLine.arguments.contains("--interactive") {
             PipelineFixture.populate(store)

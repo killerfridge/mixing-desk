@@ -82,7 +82,7 @@ struct PipelineView: View {
     private var creationControls: some View {
         HStack(spacing: 9) {
             Menu {
-                Button("Channel") { store.addStrip() }.disabled(store.session.strips.count >= 64)
+                Button("Channel") { store.addStrip(withDisabledSends: false) }.disabled(store.session.strips.count >= 64)
                 Button("Bus") { store.addBus() }.disabled(store.session.buses.count >= 16)
                 Button("Output Device…") { editor = .addOutput }
             } label: { Label("Add", systemImage: "plus") }
@@ -250,7 +250,16 @@ struct PipelineView: View {
         let automatic = graph.arranged(), saved = store.session.pipelineLayout?.positions ?? [:]
         let keys = Set(graph.nodes.map(\.key))
         positions = positions.filter { keys.contains($0.key) }
-        for node in graph.nodes { positions[node.key] = saved[node.key] ?? positions[node.key] ?? automatic[node.key] }
+        for node in graph.nodes { if let p = saved[node.key] { positions[node.key] = p } }
+        for node in graph.nodes where positions[node.key] == nil {
+            guard var candidate = automatic[node.key] else { continue }
+            // New blocks must not cover a retained or manually moved block.
+            // Discovery/reconnection never enters this path for existing IDs.
+            while positions.values.contains(where: {
+                abs($0.x-candidate.x) < PipelineGeometry.card.width + 20 && abs($0.y-candidate.y) < PipelineGeometry.card.height + 20
+            }) { candidate.y += 250 }
+            positions[node.key] = candidate
+        }
         if let selectedNode, !graph.nodes.contains(selectedNode) { self.selectedNode = nil }
         if let connecting, !graph.nodes.contains(connecting) { cancelConnection() }
     }

@@ -275,7 +275,11 @@ struct LoadSnapshot: Equatable {
             }
         }
     }
-    func addStrip() { routeEdit("Add Channel") { s in var strip = ChannelStrip(name: "Channel \(s.strips.count + 1)"); strip.sends = s.buses.map { Send(busID: $0.id, gainDB: -90, preFader: $0.kind == "monitor") }; s.strips.append(strip) } }
+    func addStrip(withDisabledSends: Bool = true) { routeEdit("Add Channel") { s in
+        var strip = ChannelStrip(name: "Channel \(s.strips.count + 1)")
+        if withDisabledSends { strip.sends = s.buses.map { Send(busID: $0.id, gainDB: -90, preFader: $0.kind == "monitor") } }
+        s.strips.append(strip)
+    } }
     func addBus() { routeEdit("Add Bus") { $0.buses.append(Bus(name: "Bus \($0.buses.count + 1)")) } }
     func sourceName(_ source: SourceBinding) -> String {
         if source.kind == "application" { return apps.first { $0.bundleID == source.bundleID }?.name ?? (source.bundleID.isEmpty ? "Choose application" : "\(source.bundleID) · offline") }

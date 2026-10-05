@@ -104,6 +104,15 @@ extension DeskStore {
         }
     }
     func removePipelineNode(_ node: PipelineNodeID) {
+        let inserts = node.kind == .strip ? session.strips.first(where: { $0.id == node.rawID })?.inserts
+            : node.kind == .bus ? session.buses.first(where: { $0.id == node.rawID })?.inserts : nil
+        if inserts?.contains(where: \.isPlugin) == true {
+            // Take the latest native state before destroying the plugin owner,
+            // so restoring a removed node does not use the last polling sample.
+            capturePluginStates { self.commitNodeRemoval(node) }
+        } else { commitNodeRemoval(node) }
+    }
+    private func commitNodeRemoval(_ node: PipelineNodeID) {
         routeEdit("Remove \(node.kind == .strip ? "Channel" : node.kind == .bus ? "Bus" : "Output")") { s in
             switch node.kind {
             case .strip: s.removeStrip(node.rawID)
