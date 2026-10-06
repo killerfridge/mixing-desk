@@ -56,13 +56,26 @@ For a virtual call return, associate the source with its application in Channel 
 ## Routing and controls
 
 - Mono strips use equal-power pan; stereo strips use balance. Trim, fader, pan, polarity, mute, send levels, bus gain, and output route gains are smoothed.
-- Mute affects all channel sends and direct outputs. A pre-fader send is after trim/inserts/mute/pan and independent of the fader. Default sends are post-fader.
-- Direct outputs are after trim/inserts/mute and optionally the fader, **before pan**. A single-channel direct patch takes the strip's left/mono channel; a stereo patch carries both. A single-channel bus patch selects its left channel; it does not silently sum stereo to mono.
-- Solo auditions only the Monitor output, even if that bus also feeds another bus. It does not alter recording, call, or stream feeds.
+- Mute affects all channel sends and direct outputs. A pre-fader send is after trim/inserts/mute/protection/pan and independent of the fader. Default sends are post-fader.
+- Direct outputs are after trim/inserts/mute and independent pre/post-fader protection, **before pan**. A single-channel direct patch takes the strip's left/mono channel; a stereo patch carries both. A single-channel bus patch selects its left channel; it does not silently sum stereo to mono.
+- Solo auditions only the Monitor output, even if that bus also feeds another bus. It does not alter recording, call, or stream feeds. **Solo: N · Clear** appears across tabs; **Clear All Solos** in the Desk commands and menu-bar mixer uses **⇧⌘L**.
 - The patch matrix controls strip-to-bus and bus-to-bus connections. Bus sends are post-master. Cycles are rejected. Right-click a connection for its pre/post setting or level; strip sends also have continuous sliders on the desk.
-- Output patches connect buses or direct strips to device channels. Multiple patches into one destination are summed. Use appropriate levels; the first version has clipping meters rather than a limiter.
-- Double-click any slider to restore its default: faders, trim, sends, and output patch gains return to 0 dB; pan/balance returns to centre. EQ sliders return to their initial frequency, gain, or Q. Fader keyboard accessibility actions adjust it in 1 dB steps. Clear the meters' latched clipping indicators with the reset button.
+- Output patches connect buses or direct strips to device channels. Multiple patches into one destination are summed. Final output protection follows the complete sum and all output-route gains.
+- Double-click any slider to restore its default: faders, trim, sends, and output patch gains return to 0 dB; pan/balance returns to centre. EQ sliders return to their initial frequency, gain, or Q. Fader keyboard accessibility actions adjust it in 1 dB steps. Hold Shift while dragging for one-tenth sensitivity, anchored to the current value. Click a channel or bus meter to clear only its held peak and overload latch; **Reset All Meters** clears every meter.
+- Click trim, fader, or bus-level readouts in Desk, or the equivalent readouts in Pipeline, to enter a precise level. Trim accepts −24…+24 dB; faders/bus levels accept −90…+12 dB. Enter or focus loss commits valid finite input; Escape cancels. Invalid or out-of-range input leaves audio unchanged.
 - Sessions and presets are versioned JSON. The last valid session is autosaved under `~/Library/Application Support/Mixing Desk/`. Device UIDs and application bundle IDs survive restart; missing bindings remain offline.
+
+## Automatic overload protection and meters
+
+Channel protection and final output protection default to **enabled**, including when opening existing version-1 sessions. They are built-in sample-peak limiters with a **−1 dBFS ceiling, 48-sample lookahead, smooth anticipatory attack, and 100 ms release**, with linked stereo gain reduction and no makeup gain or insert-slot cost.
+
+Each channel protects two independent paths after inserts and mute, before pan: pre-fader and post-fader, with matching delays. A fader change cannot drive pre-fader limiting. Pre/post sends and direct recordings take the appropriate path. Final protection runs after summed output contributions and all route gains. Stereo output pairs link their physical destination channels; overlapping pairs link transitively, while unrelated mono recording channels stay independent. Existing per-source bus processing and transitive mix-minus are retained.
+
+The two stages add **96 samples / 2 ms at 48 kHz** to the footer's hardware/plugin latency estimate. Bypass preserves both lookahead delays and smoothly changes gain over 5 ms. Bypass a channel using its shield control, menu, or Channel Settings; bypass the final stage with **Desk → Output Protection**. Source/routing/destination reassignment flushes the affected delayed audio, briefly silencing the path.
+
+Amber **LIMIT −N dB** reports successful gain reduction. The output indicator identifies affected destinations; click it for linked groups. Red overload indicators latch separately. Channel meters measure protected post-fader audio before pan. Bus meters stay after bus inserts/master and **precede final output protection**, so a bus overload can coexist with a safely limited destination. Peak readings are in dBFS and remain held, including while stopped, until that owner's meter is clicked or **Reset All Meters** is used. Meter reset is also an accessibility action and works in Pipeline. Held peaks follow owner IDs across reordering.
+
+This protects **sample peaks**, not intersample true peaks. It is not true-peak mastering protection and cannot repair distortion already present at an input or generated inside a plugin. Set input/plugin levels appropriately; hardware direct monitoring and other audio paths outside the desk are unaffected.
 
 ## Window sizes
 
@@ -78,7 +91,7 @@ Channel effects run after trim/polarity and before fader/pan/sends/direct output
 
 Missing or failed plugins retain their saved settings and silence their active wet output; explicit bypass provides dry audio. Inserts show load/render errors. An unavailable source remains silent even if its plugin generates noise. A successful load cannot prove a vendor license is active: some plugins return silence without an error when unlicensed.
 
-Plugin-reported latency appears per insert. The footer adds the longest active channel and output-bus chains to the Core Audio estimate, conservatively including chains that may not share a route. **Parallel-path delay compensation is not implemented.** VST3 latency changes are applied between callbacks; a plugin requesting a new IO layout or component reload displays a message to reload the insert.
+Plugin-reported latency appears per insert. The footer adds 96 protection samples (2 ms) and the longest active channel and output-bus chains to the Core Audio estimate, conservatively including chains that may not share a route. **Parallel-path delay compensation is not implemented.** VST3 latency changes are applied between callbacks; a plugin requesting a new IO layout or component reload displays a message to reload the insert.
 
 Loaded VST3 libraries remain resident until quit to preserve vendor shared services. After replacing or updating an existing VST3 bundle, restart the app; Rescan discovers newly installed effects.
 
@@ -96,7 +109,7 @@ Click **Add Insert**, then choose **Desk EQ** on any channel or bus. The insert 
 
 A new EQ is flat: default frequencies are 120 Hz, 1 kHz, and 8 kHz, with mid Q 1 and every gain at 0 dB. Double-click a slider to reset that parameter, or choose **Reset EQ** to restore the whole curve. **Bypass** preserves the settings. Up to four inserts may be added, reordered, and removed per channel or bus; settings, order, and bypass are saved with the session.
 
-Channel inserts run after trim/polarity and before mute, pan, and fader, so they affect all sends and direct recording outputs. Bus inserts run before the bus master fader. Parameter and bypass changes crossfade over 5 ms. The EQ adds no buffering latency; like other minimum-phase filters, it changes phase around the affected frequencies. Strong boosts may clip downstream outputs; watch the meters and use output gain to compensate.
+Channel inserts run after trim/polarity and before mute, pan, and fader, so they affect all sends and direct recording outputs. Bus inserts run before the bus master fader. Parameter and bypass changes crossfade over 5 ms. The EQ adds no buffering latency; like other minimum-phase filters, it changes phase around the affected frequencies. Strong boosts can activate downstream protection; watch LIMIT and the bus meters and use output gain to compensate.
 
 ## Engine and extensibility
 

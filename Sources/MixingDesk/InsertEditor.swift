@@ -13,7 +13,7 @@ struct InsertButton: View {
                 Spacer()
                 if !inserts.isEmpty { Circle().fill(inserts.allSatisfy(\.bypassed) ? Color.gray : DeskStyle.accent).frame(width: 5, height: 5) }
             }.font(.system(size: 10, weight: .medium)).padding(8)
-                .background(.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 5))
+                .background(DeskStyle.recessed, in: RoundedRectangle(cornerRadius: 5))
         }.buttonStyle(.plain).foregroundStyle(DeskStyle.accent)
     }
 }
@@ -148,13 +148,13 @@ private struct EQResponseGraph: View {
             func y(_ db: Double) -> CGFloat { plot.midY - CGFloat(db / limit) * plot.height / 2 }
             for db in [-limit, 0, limit] {
                 var line = Path(); line.move(to: CGPoint(x: plot.minX, y: y(db))); line.addLine(to: CGPoint(x: plot.maxX, y: y(db)))
-                context.stroke(line, with: .color(.white.opacity(db == 0 ? 0.25 : 0.08)), lineWidth: 1)
+                context.stroke(line, with: .color(DeskStyle.line.opacity(db == 0 ? 1 : 0.6)), lineWidth: 1)
                 context.draw(Text(String(format: "%+.0f", db)).font(.system(size: 9, design: .monospaced)).foregroundColor(.gray), at: CGPoint(x: 15, y: y(db)))
             }
             for frequency in [20.0, 100, 1000, 10000, 20000] {
                 let x = plot.minX + CGFloat(log10(frequency / 20) / 3) * plot.width
                 var line = Path(); line.move(to: CGPoint(x: x, y: plot.minY)); line.addLine(to: CGPoint(x: x, y: plot.maxY))
-                context.stroke(line, with: .color(.white.opacity(0.08)), lineWidth: 1)
+                context.stroke(line, with: .color(DeskStyle.line), lineWidth: 1)
                 context.draw(Text(frequency >= 1000 ? "\(Int(frequency / 1000))k" : "\(Int(frequency))").font(.system(size: 9, design: .monospaced)).foregroundColor(.gray), at: CGPoint(x: x, y: size.height - 10))
             }
             var curve = Path()
@@ -163,7 +163,7 @@ private struct EQResponseGraph: View {
                 if index == 0 { curve.move(to: point) } else { curve.addLine(to: point) }
             }
             context.stroke(curve, with: .color(bypassed ? .gray : DeskStyle.accent), style: StrokeStyle(lineWidth: 2.2, lineJoin: .round))
-        }.background(.black.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+        }.background(DeskStyle.recessed, in: RoundedRectangle(cornerRadius: 8))
             .accessibilityLabel(bypassed ? "EQ bypassed: flat response" : "EQ frequency response, 20 Hz to 20 kHz")
     }
 }

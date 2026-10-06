@@ -10,6 +10,19 @@ final class SessionTests: XCTestCase {
         XCTAssertEqual(try Session.decode(session.data()), session)
         XCTAssertEqual(session.buses.first { $0.kind == "call" }?.excludedStripID, session.strips.first { $0.role == "callReturn" }?.id)
     }
+    func testExistingSessionProtectionDefaultsAndBypassPersistence() throws {
+        var session = Session.starter()
+        var legacy = try JSONSerialization.jsonObject(with: session.data()) as! [String: Any]
+        legacy.removeValue(forKey: "outputProtectionEnabled")
+        var strips = legacy["strips"] as! [[String: Any]]
+        for i in strips.indices { strips[i].removeValue(forKey: "limiterEnabled") }
+        legacy["strips"] = strips
+        let old = try Session.decode(JSONSerialization.data(withJSONObject: legacy))
+        XCTAssertEqual(old.version, 1); XCTAssertTrue(old.outputProtectionEnabled)
+        XCTAssertTrue(old.strips.allSatisfy(\.limiterEnabled))
+        session.outputProtectionEnabled = false; session.strips[0].limiterEnabled = false
+        XCTAssertEqual(try Session.decode(session.data()), session)
+    }
     func testRejectsRoutingCycles() throws {
         var session = Session.starter()
         session.buses[0].sends = [Send(busID: session.buses[1].id)]

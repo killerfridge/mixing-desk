@@ -36,11 +36,17 @@ The new **Pipeline** tab adds an editable graph alongside Desk and Patching. Dra
 
 Read the [Pipeline routing guide](docs/PIPELINE.md). This feature is on the development branch; the existing `v0.5.0-beta.1` tag and draft downloads are unchanged.
 
+## Level and meter controls
+
+Channel and final-output protection default to −1 dBFS sample-peak limiting, with short lookahead adding **96 samples / 2 ms**, including during bypass. Amber **LIMIT** shows gain reduction; the output indicator names affected destinations. Protection cannot repair input/plugin distortion or guarantee intersample true peaks.
+
+Click trim, fader, or bus-level readouts to enter exact levels; hold Shift while dragging for fine adjustment. **Solo: N · Clear** and **⇧⌘L** clear all monitor solos. Click any channel/bus meter to reset its held dBFS peak and overload latch, or use **Reset All Meters**. Desk and Pipeline share these controls. See the [technical reference](docs/REFERENCE.md#automatic-overload-protection-and-meters).
+
 ## What the beta supports
 
 Hardware and application sources, separate buses, mix-minus, direct recording outputs, persistent named virtual devices, a built-in three-band EQ, and up to four ordered inserts per channel or bus. Sessions and presets are portable versioned JSON; unavailable bindings remain offline.
 
-Current limits include Apple Silicon only, 48 kHz mono/stereo effects, VST3 parameter editors rather than vendor windows, no parallel-path delay compensation, and clipping meters rather than a limiter. Active plugins run in the app and can crash or hang it. A bus hosting AUv2/VST3 effects cannot send to another bus. AUv3, VST2, instruments, MIDI, and sidechains are not supported. See [beta release notes](docs/releases/0.5.0-beta.1.md).
+Current limits include Apple Silicon only, 48 kHz mono/stereo effects, VST3 parameter editors rather than vendor windows, no parallel-path delay compensation, and sample-peak protection rather than true-peak mastering protection. Active plugins run in the app and can crash or hang it. A bus hosting AUv2/VST3 effects cannot send to another bus. AUv3, VST2, instruments, MIDI, and sidechains are not supported. See [beta release notes](docs/releases/0.5.0-beta.1.md).
 
 ## Privacy and support
 

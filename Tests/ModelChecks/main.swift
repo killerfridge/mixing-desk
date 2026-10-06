@@ -89,4 +89,17 @@ for id in ["FFEEDDCCBBAA99887766554433221100", vst.identifier.lowercased()] {
 }
 print("PASS: mixed EQ/AUv2/VST3 persistence, missing VST3 identity, class/state/parameter validation and VST3 bus routing restrictions.")
 
+
+// Existing v1 JSON predates both protection flags. Missing keys enable protection.
+var legacy = try JSONSerialization.jsonObject(with: original.data()) as! [String: Any]
+legacy.removeValue(forKey: "outputProtectionEnabled")
+var legacyStrips = legacy["strips"] as! [[String: Any]]
+for i in legacyStrips.indices { legacyStrips[i].removeValue(forKey: "limiterEnabled") }
+legacy["strips"] = legacyStrips
+let oldSession = try Session.decode(JSONSerialization.data(withJSONObject: legacy))
+try expect(oldSession.version == 1 && oldSession.outputProtectionEnabled && oldSession.strips.allSatisfy(\.limiterEnabled), "Existing sessions default to protected paths")
+var bypassed = original; bypassed.outputProtectionEnabled = false; bypassed.strips[1].limiterEnabled = false
+try expect(Session.decode(bypassed.data()) == bypassed, "Independent protection bypass persistence")
+print("PASS: existing v1 protection defaults and independent channel/output bypass persistence.")
+
 try pipelineModelChecks()

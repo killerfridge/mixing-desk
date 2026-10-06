@@ -42,7 +42,7 @@ specs = {
     "MixingDeskAudio": ("com.apple.product-type.bundle", "MixingDeskAudio.driver", sources(["Driver/Driver.mm"]), []),
     "DeskModelsTests": ("com.apple.product-type.bundle.unit-test", "DeskModelsTests.xctest", sources(sorted(str(p.relative_to(ROOT)) for p in (ROOT/"Tests/DeskModelsTests").glob("*.swift"))), ["DeskModels"]),
 }
-sources(["Sources/DeskAudio/Engine.hpp","Sources/DeskAudio/AudioUnitHost.hpp","Sources/DeskAudio/PluginHost.hpp","Sources/DeskAudio/VST3Support.hpp","Sources/DeskAudio/Equalizer.hpp","Sources/DeskAudio/InsertProcessor.hpp","Sources/DeskAudio/include/DeskAudio.h","Sources/DeskAudio/include/module.modulemap","Sources/DeskAudio/DriverProtocol.h","Sources/DeskAudio/DriverStatus.hpp","Driver/TimestampRing.hpp","Resources/Info.plist","Driver/Info.plist","Tests/EngineTests.cpp","Tests/EQChecks.hpp","Tests/HostedInsertChecks.hpp","Tests/AudioUnitTests.mm","Tests/DriverTests.mm"])
+sources(["Sources/DeskAudio/Engine.hpp","Sources/DeskAudio/AudioUnitHost.hpp","Sources/DeskAudio/PluginHost.hpp","Sources/DeskAudio/VST3Support.hpp","Sources/DeskAudio/Equalizer.hpp","Sources/DeskAudio/PeakProtection.hpp","Sources/DeskAudio/InsertProcessor.hpp","Sources/DeskAudio/include/DeskAudio.h","Sources/DeskAudio/include/module.modulemap","Sources/DeskAudio/DriverProtocol.h","Sources/DeskAudio/DriverStatus.hpp","Driver/TimestampRing.hpp","Resources/Info.plist","Driver/Info.plist","Tests/EngineTests.cpp","Tests/EQChecks.hpp","Tests/ProtectionChecks.hpp","Tests/HostedInsertChecks.hpp","Tests/AudioUnitTests.mm","Tests/DriverTests.mm"])
 app_resources=sources(["Sources/DeskAudio/VST3SDK/pluginterfaces/LICENSE.txt", "LICENSE", "Resources/MixingDesk.icns"])
 driver_resources=sources(["LICENSE"])
 products={}

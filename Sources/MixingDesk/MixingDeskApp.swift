@@ -10,13 +10,23 @@ import DeskAudio
 }
 struct MixingDeskApp: App {
     @StateObject private var store = DeskStore()
+    @AppStorage("deskAppearance") private var appearance = DeskAppearance.system.rawValue
     var body: some Scene {
         WindowGroup("Mixing Desk", id: "desk") {
             ContentView().environmentObject(store).frame(minWidth: 800, minHeight: 520)
-                .preferredColorScheme(.dark)
         }
         .defaultSize(width: 1180, height: 740)
         .commands {
+            CommandMenu("Desk") {
+                Button("Clear All Solos", action: store.clearAllSolos).keyboardShortcut("l", modifiers: [.command, .shift]).disabled(store.soloCount == 0)
+                Button("Reset All Meters", action: store.resetAllMeters)
+                Toggle("Output Protection", isOn: Binding(get: { store.session.outputProtectionEnabled }, set: { enabled in store.edit { $0.outputProtectionEnabled = enabled } }))
+            }
+            CommandMenu("Appearance") {
+                Picker("Appearance", selection: $appearance) {
+                    ForEach(DeskAppearance.allCases, id: \.rawValue) { Text($0.rawValue).tag($0.rawValue) }
+                }
+            }
             CommandGroup(after: .appInfo) {
                 Button("Setup Guide…") { store.showingSetupGuide = true }.disabled(store.wantsRunning)
             }
@@ -36,6 +46,9 @@ private struct DeskMenu: View {
         Text(store.running ? "Mixing at 48 kHz" : "Audio stopped")
         Button("Show Mixing Desk") { openWindow(id: "desk"); NSApp.activate(ignoringOtherApps: true) }
         Button(store.wantsRunning ? "Stop Audio" : "Start Audio", action: store.toggleAudio)
+        Divider()
+        Button("Clear All Solos", action: store.clearAllSolos).keyboardShortcut("l", modifiers: [.command, .shift]).disabled(store.soloCount == 0)
+        Button("Reset All Meters", action: store.resetAllMeters)
         Divider()
         Button("Quit Mixing Desk", action: store.quit)
     }

@@ -24,7 +24,7 @@ struct ResettableSlider: NSViewRepresentable {
         slider.doubleValue = value; slider.defaultValue = defaultValue
         slider.trackingChanged = onEditingChanged
         slider.setAccessibilityLabel(label)
-        slider.toolTip = "Double-click to reset to \(defaultDescription)."
+        slider.toolTip = "Shift-drag for fine adjustment. Double-click to reset to \(defaultDescription)."
     }
     final class Coordinator: NSObject {
         var parent: ResettableSlider
@@ -36,11 +36,24 @@ struct ResettableSlider: NSViewRepresentable {
         var trackingChanged: ((Bool) -> Void)?
         override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
         override func mouseDown(with event: NSEvent) {
+            window?.makeFirstResponder(self)
             trackingChanged?(true)
             defer { trackingChanged?(false) }
             if event.clickCount >= 2 {
                 doubleValue = defaultValue
                 if let action { sendAction(action, to: target) }
+            } else if event.modifierFlags.contains(.shift), let window {
+                // Native slider tracking jumps to the click. Fine tracking is
+                // relative to the current value, with the same begin/end hooks.
+                let anchor = convert(event.locationInWindow, from: nil).x
+                let initial = doubleValue
+                let travel = max(1, bounds.width - ((cell as? NSSliderCell)?.knobThickness ?? 12))
+                while let next = window.nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
+                    if next.type == .leftMouseUp { break }
+                    let delta = convert(next.locationInWindow, from: nil).x - anchor
+                    doubleValue = min(maxValue, max(minValue, initial + Double(delta/travel)*(maxValue-minValue)*0.1))
+                    if let action { sendAction(action, to: target) }
+                }
             } else { super.mouseDown(with: event) }
         }
     }

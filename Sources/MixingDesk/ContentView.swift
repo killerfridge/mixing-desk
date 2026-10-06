@@ -1,28 +1,67 @@
 import SwiftUI
+import AppKit
 import DeskModels
 
+enum DeskAppearance: String, CaseIterable {
+    case system = "System", light = "Light", dark = "Dark"
+    var colorScheme: ColorScheme? {
+        switch self { case .system: return nil; case .light: return .light; case .dark: return .dark }
+    }
+}
 enum DeskStyle {
-    static let background = Color(red: 0.055, green: 0.067, blue: 0.075)
-    static let panel = Color(red: 0.094, green: 0.11, blue: 0.12)
-    static let elevated = Color(red: 0.13, green: 0.15, blue: 0.16)
-    static let accent = Color(red: 0.97, green: 0.66, blue: 0.30)
-    static let line = Color.white.opacity(0.085)
+    // Native dynamic colours also follow the chosen appearance in sheets and
+    // AppKit controls, without making appearance part of an audio session.
+    private static func adaptive(_ light: UInt32, _ dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            let rgb = isDark ? dark : light
+            return NSColor(srgbRed: CGFloat((rgb >> 16) & 255) / 255,
+                           green: CGFloat((rgb >> 8) & 255) / 255, blue: CGFloat(rgb & 255) / 255,
+                           alpha: isDark ? darkAlpha : lightAlpha)
+        })
+    }
+    static let background = adaptive(0xF2F4F5, 0x0E1113)
+    static let panel = adaptive(0xFFFFFF, 0x181C1F)
+    static let elevated = adaptive(0xE5E9EC, 0x212629)
+    static let recessed = adaptive(0xE9EDF0, 0x121517)
+    static let accent = adaptive(0x9F570E, 0xF7A84D)
+    static let accentText = adaptive(0xFFFFFF, 0x000000)
+    static let line = adaptive(0x000000, 0xFFFFFF, lightAlpha: 0.13, darkAlpha: 0.085)
+    static let meterTrack = adaptive(0x000000, 0xFFFFFF, lightAlpha: 0.10, darkAlpha: 0.06)
+    static let output = adaptive(0x087D95, 0x32C5E8)
     static func color(_ name: String) -> Color {
-        switch name { case "amber": return accent; case "purple": return Color(red: 0.67, green: 0.56, blue: 0.95); case "blue": return Color(red: 0.38, green: 0.65, blue: 0.94); case "rose": return .pink; default: return Color(red: 0.30, green: 0.80, blue: 0.69) }
+        switch name {
+        case "amber": return accent
+        case "purple": return adaptive(0x7552B8, 0xAB8FF2)
+        case "blue": return adaptive(0x286EB8, 0x61A6F0)
+        case "rose": return adaptive(0xB92F65, 0xF75991)
+        default: return adaptive(0x197F6B, 0x4DCCB0)
+        }
     }
 }
 struct ContentView: View {
     @EnvironmentObject var store: DeskStore
+    @Environment(\.colorScheme) private var inheritedColorScheme
     @State private var page = "Desk"
     init(initialPage: String = "Desk") { _page = State(initialValue: initialPage) }
     @State private var presetName = ""
     @State private var savingPreset = false
     @AppStorage("deskDensity") private var density = "Automatic"
+    @AppStorage("deskAppearance") private var appearance = DeskAppearance.system.rawValue
     var body: some View {
         GeometryReader { geometry in
             let compact = density == "Compact" || (density == "Automatic" && (geometry.size.width < 1250 || geometry.size.height < 950))
             content(compact: compact).environment(\.deskCompact, compact)
+                .environment(\.colorScheme, resolvedColorScheme)
         }
+        .preferredColorScheme((DeskAppearance(rawValue: appearance) ?? .system).colorScheme)
+    }
+    private var resolvedColorScheme: ColorScheme {
+        // Observe native scheme changes. Clearing SwiftUI's preferred scheme can
+        // leave its child environment at the previous value for dynamic colours.
+        _ = inheritedColorScheme
+        return (DeskAppearance(rawValue: appearance) ?? .system).colorScheme
+            ?? (NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? .dark : .light)
     }
     private func content(compact: Bool) -> some View {
         VStack(spacing: 0) {
@@ -41,6 +80,15 @@ struct ContentView: View {
                 Text("•").foregroundStyle(.quaternary)
                 Text(store.running ? "\(store.actualFrames) samples" : "\(store.session.bufferFrames) samples").font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
             }.padding(.horizontal, compact ? 12 : 22).padding(.vertical, compact ? 5 : 10).background(DeskStyle.panel.opacity(0.6))
+            HStack(spacing: 10) {
+                if store.soloCount > 0 {
+                    Button("Solo: \(store.soloCount) · Clear", action: store.clearAllSolos)
+                        .buttonStyle(.plain).font(.system(size: 11, weight: .semibold)).foregroundStyle(DeskStyle.accent)
+                        .help("Clear all monitor solos (⇧⌘L).")
+                }
+                Spacer(minLength: 8)
+                OutputProtectionIndicator(readings: store.meters, enabled: store.session.outputProtectionEnabled)
+            }.padding(.horizontal, compact ? 16 : 24).padding(.vertical, 5).background(DeskStyle.panel.opacity(0.6))
             Group {
                 switch page {
                 case "Patching": PatchView()
@@ -74,6 +122,13 @@ struct ContentView: View {
             }
             Spacer()
             Menu {
+                Picker("Appearance", selection: $appearance) {
+                    ForEach(DeskAppearance.allCases, id: \.rawValue) { Text($0.rawValue).tag($0.rawValue) }
+                }
+            } label: { Image(systemName: "circle.lefthalf.filled") }
+                .menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Appearance")
+                .help("Appearance: \(appearance). Choose System, Light, or Dark.")
+            Menu {
                 Button("Open Session…", action: store.openSession)
                 Button("Export Session…", action: store.exportSession)
                 Divider()
@@ -83,7 +138,7 @@ struct ContentView: View {
             Button(action: store.toggleAudio) {
                 HStack(spacing: 8) { Image(systemName: store.wantsRunning ? "stop.fill" : "play.fill"); Text(store.wantsRunning ? "Stop Audio" : "Start Audio") }
                     .font(.system(size: 12, weight: .bold)).padding(.horizontal, 18).padding(.vertical, 11)
-                    .foregroundStyle(store.wantsRunning ? .white : .black).background(store.wantsRunning ? DeskStyle.elevated : DeskStyle.accent, in: RoundedRectangle(cornerRadius: 8))
+                    .foregroundStyle(store.wantsRunning ? Color.primary : DeskStyle.accentText).background(store.wantsRunning ? DeskStyle.elevated : DeskStyle.accent, in: RoundedRectangle(cornerRadius: 8))
             }.buttonStyle(.plain)
         }.padding(.horizontal, compact ? 16 : 26).padding(.vertical, compact ? 9 : 18)
     }
@@ -94,7 +149,7 @@ struct ContentView: View {
             Spacer()
             if store.running {
                 EngineLoadView(readings: store.engineLoad)
-                Text(String(format: "~%.1f ms estimated", store.estimatedLatency + store.maximumPluginLatencyMS)).help("Core Audio estimate plus the longest active channel and output-bus plugin chains. This is not a measured round-trip latency; parallel paths are not delay-compensated.")
+                Text(String(format: "~%.1f ms estimated", store.estimatedLatency + store.maximumPluginLatencyMS + store.protectionLatencyMS)).help("Core Audio estimate plus the longest active channel and output-bus plugin chains, plus protection: 96 samples / 2 ms, including during bypass. This is not a measured round-trip latency; parallel paths are not delay-compensated.")
             } else { Text("LOCAL AUDIO ENGINE") }
         }.font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).padding(.horizontal, 24).padding(.vertical, 12).background(DeskStyle.panel)
     }
@@ -120,7 +175,9 @@ struct MixerView: View {
                     Picker("Monitoring", selection: $store.session.monitoringMode) { Text("Mixer Monitoring").tag("mixer"); Text("Direct Guitar").tag("directGuitar") }
                     Button("Add Channel") { store.addStrip() }.disabled(store.session.strips.count >= 64)
                     Button("Add Bus") { store.addBus() }.disabled(store.session.buses.count >= 16)
-                    Button("Reset clipping indicators") { store.clearClips() }
+                    Toggle("Output Protection", isOn: $store.session.outputProtectionEnabled)
+                    Button("Clear All Solos", action: store.clearAllSolos).disabled(store.soloCount == 0)
+                    Button("Reset All Meters", action: store.resetAllMeters)
                 } label: { Label("Desk", systemImage: "ellipsis.circle") }.fixedSize()
             }
             GeometryReader { geometry in
@@ -133,7 +190,7 @@ struct MixerView: View {
                         if !compact || bank != "Channels" {
                             ForEach($store.session.buses) { $bus in BusStripView(bus: $bus).frame(width: compact ? 158 : 166) }
                         }
-                    }.environment(\.deskFaderHeight, compact ? max(90, min(150, geometry.size.height - 355)) : 208).padding(.bottom, 8)
+                    }.environment(\.deskFaderHeight, compact ? max(90, min(150, geometry.size.height - 380)) : 208).padding(.bottom, 8)
                 }
             }
             if !store.offline.isEmpty { Label("Offline: \(store.offline.joined(separator: ", "))", systemImage: "cable.connector.slash").font(.caption).foregroundStyle(.orange).lineLimit(1).help(store.offline.joined(separator: ", ")) }
@@ -157,6 +214,7 @@ struct ChannelStripView: View {
                 Spacer(minLength: 1)
                 Menu {
                     Button("Channel Settings…") { editing = true }
+                    Toggle("Channel Protection", isOn: $strip.limiterEnabled)
                     Button("Move Left") { move(-1) }
                     Button("Move Right") { move(1) }
                     Divider()
@@ -165,10 +223,13 @@ struct ChannelStripView: View {
             }
             Button { editing = true } label: {
                 HStack(spacing: 5) { Circle().fill(store.sourceOnline(strip.source) ? accent : .gray).frame(width: 5, height: 5); Text(store.sourceName(strip.source)).lineLimit(1); Spacer(minLength: 0); Image(systemName: "chevron.down").font(.system(size: 8)) }
-                    .font(.system(size: 10)).foregroundStyle(.secondary).padding(8).background(.black.opacity(0.24), in: RoundedRectangle(cornerRadius: 5))
+                    .font(.system(size: 10)).foregroundStyle(.secondary).padding(8).background(DeskStyle.recessed, in: RoundedRectangle(cornerRadius: 5))
             }.buttonStyle(.plain)
             InsertButton(inserts: strip.inserts) { editingInserts = true }
-            HStack { Text("TRIM").font(.system(size: 9, weight: .semibold)).foregroundStyle(.secondary); Spacer(); Text(String(format: "%+.1f dB", strip.trimDB)).font(.system(size: 10, design: .monospaced)) }
+            HStack {
+                Text("TRIM").font(.system(size: 9, weight: .semibold)).foregroundStyle(.secondary); Spacer()
+                NumericLevelEditor(value: $strip.trimDB, range: -24...24, label: "\(strip.name) trim").frame(width: 65, height: 16)
+            }
             ResettableSlider(value: $strip.trimDB, range: -24...24, label: "Input trim")
             HStack {
                 ToggleButton(label: "M", active: $strip.muted, color: .red)
@@ -177,9 +238,14 @@ struct ChannelStripView: View {
             }
             HStack(spacing: 18) {
                 Fader(value: $strip.faderDB, tint: accent).frame(width: 72, height: faderHeight)
-                LiveLevelMeter(readings: store.meters, index: store.session.strips.firstIndex(where: { $0.id == strip.id }), isBus: false, running: store.running).frame(width: 30, height: faderHeight)
+                LiveLevelMeter(readings: store.meters, ownerID: strip.id, isBus: false, running: store.running, reset: { [ownerID = strip.id] in store.resetMeter(ownerID: ownerID, isBus: false) }).frame(width: 30, height: faderHeight)
             }.frame(maxWidth: .infinity).padding(.vertical, 4)
-            Text(strip.faderDB <= -90 ? "−∞ dB" : String(format: "%+.1f dB", strip.faderDB)).font(.system(size: 18, weight: .medium, design: .monospaced)).foregroundStyle(strip.muted ? .secondary : .primary)
+            NumericLevelEditor(value: $strip.faderDB, range: -90...12, label: "\(strip.name) fader", size: 18, muted: strip.muted).frame(width: 100, height: 23)
+            HStack(spacing: 4) {
+                Button { strip.limiterEnabled.toggle() } label: { Image(systemName: strip.limiterEnabled ? "shield.lefthalf.filled" : "shield.slash") }
+                    .buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel("\(strip.name) protection").accessibilityValue(strip.limiterEnabled ? "On" : "Bypassed")
+                ChannelProtectionActivity(readings: store.meters, ownerID: strip.id, enabled: strip.limiterEnabled)
+            }
             VStack(spacing: 2) {
                 ResettableSlider(value: $strip.pan, range: -1...1, label: "Pan / balance", defaultDescription: "centre")
                 HStack { Text("L"); Spacer(); Text(abs(strip.pan) < 0.01 ? "C" : String(format: "%.0f %@", abs(strip.pan)*100, strip.pan < 0 ? "L" : "R")); Spacer(); Text("R") }.font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
@@ -233,8 +299,8 @@ struct BusStripView: View {
             Text(bus.kind == "monitor" ? "HEADPHONE MIX" : bus.kind == "call" ? "MIX-MINUS" : "OUTPUT BUS").font(.system(size: 9, weight: .medium)).tracking(1).foregroundStyle(DeskStyle.accent)
             InsertButton(inserts: bus.inserts) { editingInserts = true }
             ToggleButton(label: "MUTE", active: $bus.muted, color: .red)
-            HStack(spacing: 18) { Fader(value: $bus.gainDB, tint: DeskStyle.accent).frame(width: 68, height: faderHeight); LiveLevelMeter(readings: store.meters, index: store.session.buses.firstIndex(where: { $0.id == bus.id }), isBus: true, running: store.running).frame(width: 28, height: faderHeight) }.padding(.vertical, 4)
-            Text(bus.gainDB <= -90 ? "−∞ dB" : String(format: "%+.1f dB", bus.gainDB)).font(.system(size: 18, weight: .medium, design: .monospaced))
+            HStack(spacing: 18) { Fader(value: $bus.gainDB, tint: DeskStyle.accent).frame(width: 68, height: faderHeight); LiveLevelMeter(readings: store.meters, ownerID: bus.id, isBus: true, running: store.running, reset: { [ownerID = bus.id] in store.resetMeter(ownerID: ownerID, isBus: true) }).frame(width: 28, height: faderHeight) }.padding(.vertical, 4)
+            NumericLevelEditor(value: $bus.gainDB, range: -90...12, label: "\(bus.name) level", size: 18, muted: bus.muted).frame(width: 100, height: 23)
             if bus.kind == "call" {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("EXCLUDE RETURN").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
@@ -267,19 +333,22 @@ private struct EngineLoadView: View {
 }
 private struct LiveLevelMeter: View {
     @ObservedObject var readings: DeskMeters
-    let index: Int?
+    let ownerID: String
     let isBus: Bool
     let running: Bool
-    private var value: MeterValue {
-        let values = isBus ? readings.value.buses : readings.value.strips
-        guard running, let index, values.indices.contains(index) else { return MeterValue() }
-        return values[index]
+    var reset: () -> Void
+    private var value: MeterValue { let value = readings.value.meter(ownerID: ownerID, isBus: isBus); return running ? value : value.quiet }
+    var body: some View {
+        Button(action: reset) { LevelMeter(value: value) }.buttonStyle(.plain)
+            .accessibilityLabel("\(isBus ? "Bus" : "Channel") meter")
+            .accessibilityValue("Held peak \(value.heldDescription) dBFS\(value.clip ? ", overload" : "")")
+            .accessibilityAction(named: Text("Reset meter"), reset)
+            .help(isBus ? "Held peak in dBFS. Click to reset this bus's peak and overload latch. Meter is after bus inserts/master; final output protection follows output-route gains and summing." : "Protected post-fader peak in dBFS, before pan. Click to reset this channel's held peak and overload latch.")
     }
-    var body: some View { LevelMeter(value: value) }
 }
 struct ToggleButton: View {
     let label: String; @Binding var active: Bool; var color: Color
-    var body: some View { Button { active.toggle() } label: { Text(label).font(.system(size: 10, weight: .bold)).frame(maxWidth: .infinity).padding(.vertical, 7).foregroundStyle(active ? .black : .secondary).background(active ? color : .black.opacity(0.22), in: RoundedRectangle(cornerRadius: 4)) }.buttonStyle(.plain).accessibilityLabel(label == "M" ? "Mute" : label == "S" ? "Solo in monitor" : label == "Ø" ? "Invert polarity" : label).accessibilityValue(active ? "On" : "Off") }
+    var body: some View { Button { active.toggle() } label: { Text(label).font(.system(size: 10, weight: .bold)).frame(maxWidth: .infinity).padding(.vertical, 7).foregroundStyle(active ? DeskStyle.accentText : Color.secondary).background(active ? color : DeskStyle.recessed, in: RoundedRectangle(cornerRadius: 4)) }.buttonStyle(.plain).accessibilityLabel(label == "M" ? "Mute" : label == "S" ? "Solo in monitor" : label == "Ø" ? "Invert polarity" : label).accessibilityValue(active ? "On" : "Off") }
 }
 struct Fader: View {
     @Binding var value: Double
@@ -292,18 +361,19 @@ struct Fader: View {
             ZStack(alignment: .top) {
                 Capsule().fill(.black.opacity(0.65)).frame(width: 7).padding(.vertical, 12)
                 ForEach(geo.size.height < 150 ? [12, 0, -12, -48, -90] : [12, 6, 0, -6, -12, -24, -48, -90], id: \.self) { mark in
-                    HStack { Text(mark == -90 ? "∞" : "\(mark)").font(.system(size: 8, design: .monospaced)).foregroundStyle(mark == 0 ? tint : .secondary).frame(width: 20, alignment: .trailing); Rectangle().fill(mark == 0 ? tint.opacity(0.6) : .white.opacity(0.13)).frame(width: 28, height: 1); Spacer(minLength: 0) }.offset(y: 12+travel*(1-position(Double(mark)))-5)
+                    HStack { Text(mark == -90 ? "∞" : "\(mark)").font(.system(size: 8, design: .monospaced)).foregroundStyle(mark == 0 ? tint : .secondary).frame(width: 20, alignment: .trailing); Rectangle().fill(mark == 0 ? tint.opacity(0.6) : DeskStyle.line).frame(width: 28, height: 1); Spacer(minLength: 0) }.offset(y: 12+travel*(1-position(Double(mark)))-5)
                 }
                 RoundedRectangle(cornerRadius: 4).fill(LinearGradient(colors: [.white.opacity(0.85), .gray.opacity(0.8)], startPoint: .top, endPoint: .bottom)).frame(width: 32, height: 24)
                     .overlay(Rectangle().fill(.black.opacity(0.8)).frame(height: 2).padding(.horizontal, 4))
                     .shadow(color: .black.opacity(0.5), radius: 4, y: 3)
                     .offset(x: 7, y: travel*(1-position(min(12,max(-90,value)))))
             }.frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
-                .overlay(FaderMouseSurface(onPosition: { y in
+                .overlay(FaderMouseSurface(currentPosition: { 12+travel*(1-position(min(12,max(-90,value)))) }, onPosition: { y, fine in
                     let fraction = 1.0 - Double(y - CGFloat(12)) / Double(travel)
-                    value = (decibels(min(1.0, max(0.0, fraction))) * 10).rounded() / 10
+                    let precision = fine ? 100.0 : 10.0
+                    value = (decibels(min(1.0, max(0.0, fraction))) * precision).rounded() / precision
                 }, onReset: { value = 0 }))
-                .help("Drag to adjust. Double-click to reset to 0 dB.")
+                .help("Drag to adjust. Shift-drag at one-tenth sensitivity. Double-click to reset to 0 dB.")
         }.accessibilityElement().accessibilityLabel("Fader").accessibilityValue("\(value) decibels").accessibilityAdjustableAction { direction in value = min(12,max(-90,value+(direction == .increment ? 1 : -1))) }
     }
 }
@@ -324,7 +394,8 @@ struct LevelMeter: View {
                     }
                 }
             }
-            HStack { Text("L"); Spacer(); Text("R") }.font(.system(size: 7, design: .monospaced)).foregroundStyle(.tertiary)
-        }.accessibilityLabel("Peak \(20*log10(max(0.00001, Double(max(value.peakL,value.peakR)))) ,specifier: "%.1f") dBFS")
+            Text(value.heldDescription).font(.system(size: 8, weight: .medium, design: .monospaced)).fixedSize()
+            Text("dBFS").font(.system(size: 7)).foregroundStyle(.secondary)
+        }.accessibilityElement(children: .ignore).accessibilityLabel("Held peak \(value.heldDescription) dBFS")
     }
 }
