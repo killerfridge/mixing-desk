@@ -6,3 +6,5 @@ xcuserdata/
 .swiftpm/
 __pycache__/
 *.pyc
+Windows/**/bin/
+Windows/**/obj/

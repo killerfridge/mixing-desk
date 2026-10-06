@@ -4,6 +4,10 @@ A native Mac audio mixer for your microphone, audio interface, and application a
 
 **Experimental beta · Apple Silicon · macOS 14.4+ · 48 kHz**
 
+A separate **Windows 11 x64 version** is in development alongside the Mac app.
+See the [Windows build and setup guide](Windows/README.md) for its source build,
+current limits, and the physical-PC checks required before a Windows release.
+
 The first installable beta is being prepared. Public downloads will appear in [GitHub Releases](https://github.com/killerfridge/mixing-desk/releases) after the [release checks](docs/RELEASE_CHECKLIST.md) pass. Source builds are available now. This is a community project with best-effort support.
 
 ![Mixing Desk with an unassigned starter session](docs/images/desk.png)
