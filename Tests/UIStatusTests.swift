@@ -8,12 +8,15 @@ import DeskModels
 // or reading/writing the user's session. --benchmark also opens disposable desk
 // and AU windows, replaying moving meters at the production 30 Hz rate.
 @main @MainActor enum UIStatusTests {
-    static func status(_ tick: Int = 0) -> [String: Any] {
+    static func status(_ tick: Int = 0, session: Session) -> [String: Any] {
         let level = Double(tick % 100) / 100
         let meter: [String: Any] = ["peakL": level, "peakR": level * 0.8,
-                                   "rmsL": level * 0.5, "rmsR": level * 0.4, "clip": false]
-        return ["running": true, "strips": Array(repeating: meter, count: 4),
-                "buses": Array(repeating: meter, count: 4), "load": level * 0.2,
+                                   "rmsL": level * 0.5, "rmsR": level * 0.4, "clip": false,
+                                   "heldL": level, "heldR": level * 0.8, "reductionDB": level * 12]
+        func owned(_ id: String) -> [String: Any] { var data = meter; data["id"] = id; return data }
+        var output = owned("group"); output["destinations"] = [["uid": "test", "name": "Test output · Ch 1"]]
+        return ["running": true, "strips": session.strips.map { owned($0.id) },
+                "buses": session.buses.map { owned($0.id) }, "outputProtection": [output], "protectionLatencyFrames": 96, "load": level * 0.2,
                 "underruns": 0, "bufferFrames": 128, "estimatedLatencyMs": 5.3,
                 "offline": ["Offline test source"],
                 "plugins": [["id": "test", "latencyFrames": 32, "error": ""]],
@@ -24,7 +27,7 @@ import DeskModels
         app.setActivationPolicy(.regular)
         let store = DeskStore(initialSession: .starter(), startsMonitoring: false)
         store.wantsRunning = true
-        store.receiveStatus(status())
+        store.receiveStatus(status(session: store.session))
         var deskChanges = 0
         let observation = store.objectWillChange.sink { deskChanges += 1 }
 
@@ -32,12 +35,12 @@ import DeskModels
             var meterChanges = 0, loadChanges = 0
             let meterObservation = store.meters.objectWillChange.sink { meterChanges += 1 }
             let loadObservation = store.engineLoad.objectWillChange.sink { loadChanges += 1 }
-            for tick in 1...300 { store.receiveStatus(status(tick)) }
+            for tick in 1...300 { store.receiveStatus(status(tick, session: store.session)) }
             precondition(deskChanges == 0, "Meter polling invalidated the desk or app scenes")
             precondition(meterChanges == 300 && loadChanges == 300, "Live readings stopped updating")
-            store.receiveStatus(status(300))
+            store.receiveStatus(status(300, session: store.session))
             precondition(meterChanges == 300 && loadChanges == 300, "Unchanged readings were republished")
-            var changed = status(300)
+            var changed = status(300, session: store.session)
             changed["plugins"] = [["id": "test", "latencyFrames": 64, "error": "Test failure"]]
             changed["offline"] = ["Another offline source"]
             changed["bufferFrames"] = 256
@@ -53,10 +56,10 @@ import DeskModels
             precondition(deskChanges == 5, "Unchanged status was republished")
             changed["running"] = false
             store.receiveStatus(changed)
-            precondition(!store.running && store.meters.value.strips.isEmpty && store.meters.value.buses.isEmpty)
+            precondition(!store.running && store.meters.value.strips.allSatisfy { $0.peakL == 0 && $0.rmsL == 0 && $0.reductionDB == 0 }, "Stopped meters must retain held peaks while silencing live readings")
             precondition(deskChanges == 6, "Stop transition was lost")
             withExtendedLifetime([observation, meterObservation, loadObservation]) {}
-            print("PASS: 300 moving meter/load updates, no desk invalidations; unchanged status suppression; latency/errors/devices/stop transitions")
+            print("PASS: 300 moving held-peak/gain-reduction/output-group/meter/load updates, no desk invalidations; unchanged status suppression; latency/errors/devices/stop transitions")
             return
         }
 
@@ -66,7 +69,7 @@ import DeskModels
         }
         app.finishLaunching()
         let pipeline = CommandLine.arguments.contains("--pipeline")
-        if pipeline { PipelineFixture.populate(store, dense: CommandLine.arguments.contains("--dense")); store.wantsRunning = true; store.receiveStatus(status()) }
+        if pipeline { PipelineFixture.populate(store, dense: CommandLine.arguments.contains("--dense")); store.wantsRunning = true; store.receiveStatus(status(session: store.session)) }
         let desk = NSWindow(contentRect: NSRect(x: 30, y: 50, width: 1180, height: 740),
                             styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         desk.title = "Mixing Desk · UI performance test"
@@ -95,7 +98,7 @@ import DeskModels
         }
         let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { _ in MainActor.assumeIsolated {
             tick += 1
-            store.receiveStatus(status(tick))
+            store.receiveStatus(status(tick, session: store.session))
             if tick == 60 { start = ProcessInfo.processInfo.systemUptime; cpuStart = clock(); deskChanges = 0 }
             if tick == 360 {
                 let elapsed = ProcessInfo.processInfo.systemUptime - start

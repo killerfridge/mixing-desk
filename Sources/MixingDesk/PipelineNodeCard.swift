@@ -3,10 +3,12 @@ import DeskModels
 
 struct PipelineNodeCard<Actions: View>: View {
     @EnvironmentObject var store: DeskStore
+    @Environment(\.colorScheme) private var colorScheme
     let node: PipelineNodeID
     let selected: Bool
     let compatible: Bool
     let name: String
+    var metersVisible = true
     var select: () -> Void
     var configure: () -> Void
     var inserts: () -> Void
@@ -16,7 +18,7 @@ struct PipelineNodeCard<Actions: View>: View {
     private var strip: ChannelStrip? { store.session.strips.first { node.kind == .strip && $0.id == node.rawID } }
     private var bus: Bus? { store.session.buses.first { node.kind == .bus && $0.id == node.rawID } }
     private var device: Device? { store.devices.first { node.kind == .output && $0.uid == node.rawID } }
-    private var color: Color { node.kind == .output ? .cyan : DeskStyle.color(strip?.color ?? "amber") }
+    private var color: Color { node.kind == .output ? DeskStyle.output : DeskStyle.color(strip?.color ?? "amber") }
     private var chain: [InsertSlot] { strip?.inserts ?? bus?.inserts ?? [] }
     private var online: Bool { strip.map { store.sourceOnline($0.source) } ?? (node.kind == .bus || device != nil) }
     private var icon: String {
@@ -25,7 +27,7 @@ struct PipelineNodeCard<Actions: View>: View {
         return node.rawID.hasPrefix("local.mixingdesk.virtual.") ? "waveform.path" : "hifispeaker.fill"
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 7) {
                 Image(systemName: icon).foregroundStyle(color).frame(width: 17)
                 VStack(alignment: .leading, spacing: 2) {
@@ -76,13 +78,17 @@ struct PipelineNodeCard<Actions: View>: View {
             }
             Spacer(minLength: 0)
             if node.kind != .output {
-                PipelineMeter(readings: store.meters, index: node.kind == .strip ? store.session.strips.firstIndex { $0.id == node.rawID } : store.session.buses.firstIndex { $0.id == node.rawID }, isBus: node.kind == .bus, running: store.running)
+                if metersVisible {
+                    PipelineMeter(readings: store.meters, ownerID: node.rawID, isBus: node.kind == .bus, running: store.running, reset: { store.resetMeter(ownerID: node.rawID, isBus: node.kind == .bus) })
+                } else {
+                    PipelineMeterDisplay(value: store.meters.value.meter(ownerID: node.rawID, isBus: node.kind == .bus), isBus: node.kind == .bus, reset: { store.resetMeter(ownerID: node.rawID, isBus: node.kind == .bus) })
+                }
+                PipelineLevelControls(node: node, name: name, metersVisible: metersVisible)
                 HStack(spacing: 5) {
                     if let bus, let excluded = store.session.strips.first(where: { $0.id == bus.excludedStripID }) {
                         Label("Excludes \(excluded.name)", systemImage: "nosign").foregroundStyle(.orange).lineLimit(1)
                     } else { Text(strip.map { $0.source.channels.count == 1 ? "MONO INPUT" : "STEREO INPUT" } ?? "STEREO MIX").foregroundStyle(.secondary) }
                     Spacer(minLength: 1)
-                    Text((strip?.muted ?? bus?.muted ?? false) ? "MUTED" : String(format: "%+.0f dB", strip?.faderDB ?? bus?.gainDB ?? 0)).foregroundStyle(.secondary)
                 }.font(.system(size: 9, design: .monospaced))
             } else {
                 HStack {
@@ -96,9 +102,70 @@ struct PipelineNodeCard<Actions: View>: View {
         .background(DeskStyle.panel, in: RoundedRectangle(cornerRadius: 12))
         .overlay(alignment: .top) { RoundedRectangle(cornerRadius: 2).fill(color).frame(height: 3).padding(.horizontal, 14) }
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(compatible ? .green : selected ? color : DeskStyle.line, lineWidth: compatible || selected ? 2 : 1))
-        .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
+        .shadow(color: .black.opacity(colorScheme == .light ? 0.07 : 0.18), radius: 8, y: 4)
         .contentShape(RoundedRectangle(cornerRadius: 12)).onTapGesture(perform: select)
         .contextMenu { actions() }
         .accessibilityElement(children: .contain).accessibilityLabel("\(name), \(node.kind.rawValue)\(online ? "" : ", offline")")
+    }
+}
+
+/// Uses stable node IDs so removal, reordering and routing undo cannot leave a
+/// control editing the wrong channel. Levels share the Desk's live update path.
+struct PipelineLevelControls: View {
+    @EnvironmentObject var store: DeskStore
+    let node: PipelineNodeID
+    let name: String
+    var metersVisible = true
+    private func binding<T>(_ stripKey: WritableKeyPath<ChannelStrip, T>, _ busKey: WritableKeyPath<Bus, T>, fallback: T) -> Binding<T> {
+        Binding(get: {
+            if node.kind == .strip { return store.session.strips.first { $0.id == node.rawID }?[keyPath: stripKey] ?? fallback }
+            return store.session.buses.first { $0.id == node.rawID }?[keyPath: busKey] ?? fallback
+        }, set: { value in
+            store.edit { session in
+                if node.kind == .strip, let i = session.strips.firstIndex(where: { $0.id == node.rawID }) { session.strips[i][keyPath: stripKey] = value }
+                else if node.kind == .bus, let i = session.buses.firstIndex(where: { $0.id == node.rawID }) { session.buses[i][keyPath: busKey] = value }
+            }
+        })
+    }
+    private var solo: Binding<Bool> {
+        Binding(get: { store.session.strips.first { $0.id == node.rawID }?.solo ?? false }, set: { value in
+            store.edit { session in
+                if let i = session.strips.firstIndex(where: { $0.id == node.rawID }) { session.strips[i].solo = value }
+            }
+        })
+    }
+    var body: some View {
+        let level = binding(\.faderDB, \.gainDB, fallback: 0)
+        let muted = binding(\.muted, \.muted, fallback: false)
+        VStack(spacing: 3) {
+            HStack(spacing: 5) {
+                Text("LEVEL").foregroundStyle(.secondary)
+                NumericLevelEditor(value: level, range: -90...12, label: "\(name) level", size: 9, muted: muted.wrappedValue).frame(width: 60, height: 17)
+                Spacer(minLength: 2)
+                toggle("M", value: muted, color: .red, label: "Mute \(name)")
+                if node.kind == .strip { toggle("S", value: solo, color: DeskStyle.accent, label: "Solo \(name) in monitor") }
+            }.font(.system(size: 9, weight: .medium, design: .monospaced)).frame(height: 18)
+            ResettableSlider(value: level, range: -90...12, label: "\(name) level").frame(height: 16)
+            if node.kind == .strip {
+                HStack(spacing: 5) {
+                    Text("TRIM").font(.system(size: 9)).foregroundStyle(.secondary)
+                    NumericLevelEditor(value: binding(\.trimDB, \.gainDB, fallback: 0), range: -24...24, label: "\(name) trim", size: 9).frame(width: 62, height: 16)
+                    Spacer(minLength: 0)
+                    if metersVisible {
+                        ChannelProtectionActivity(readings: store.meters, ownerID: node.rawID, enabled: store.session.strips.first { $0.id == node.rawID }?.limiterEnabled ?? true)
+                    } else {
+                        Text(store.session.strips.first { $0.id == node.rawID }?.limiterEnabled == false ? "BYPASS" : "PROTECT").font(.system(size: 9, weight: .semibold, design: .monospaced)).foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+    private func toggle(_ title: String, value: Binding<Bool>, color: Color, label: String) -> some View {
+        Button { value.wrappedValue.toggle() } label: {
+            Text(title).frame(width: 23, height: 18)
+                .foregroundStyle(value.wrappedValue ? DeskStyle.accentText : Color.secondary)
+                .background(value.wrappedValue ? color : DeskStyle.recessed, in: RoundedRectangle(cornerRadius: 4))
+        }.buttonStyle(.plain).accessibilityLabel(label).accessibilityValue(value.wrappedValue ? "On" : "Off")
+            .help(title == "M" ? "Mute this signal." : "Solo in the monitor mix only.")
     }
 }

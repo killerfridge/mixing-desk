@@ -12,6 +12,7 @@ struct ChannelSettingsView: View {
             SectionTitle(title: "Channel settings", subtitle: "Select the source and its individual audio channels.")
             Form {
                 TextField("Name", text: $strip.name)
+                Toggle("Channel Protection (−1 dBFS)", isOn: $strip.limiterEnabled)
                 Picker("Colour", selection: $strip.color) { ForEach(["teal", "amber", "purple", "blue", "rose"], id: \.self) { Text($0.capitalized).tag($0) } }
                 Picker("Role", selection: $strip.role) { Text("General").tag("generic"); Text("Guitar").tag("guitar"); Text("Call return").tag("callReturn") }
                 Picker("Source", selection: $strip.source.kind) { Text("Audio device").tag("device"); Text("Application").tag("application") }
@@ -138,7 +139,7 @@ struct PatchView: View {
                 let isExcluded = kind == "strip" && store.session.strips.first(where: { $0.id == id }).map { PipelineGraph.excludes(bus, source: $0.source, in: store.session) } == true
                 Button { patch(kind: kind, id: id, busID: bus.id, mode: "toggle") } label: {
                     VStack(spacing: 3) {
-                        Image(systemName: kind == "bus" && id == bus.id ? "minus" : isExcluded ? "nosign" : connection == nil ? "plus" : "circle.fill").font(.system(size: 12)).foregroundStyle(isExcluded ? .orange : connection == nil ? .white.opacity(0.16) : color)
+                        Image(systemName: kind == "bus" && id == bus.id ? "minus" : isExcluded ? "nosign" : connection == nil ? "plus" : "circle.fill").font(.system(size: 12)).foregroundStyle(isExcluded ? .orange : connection == nil ? DeskStyle.line : color)
                         if let connection, !isExcluded { Text(connection.gainDB <= -90 ? "OFF" : "\(connection.preFader ? "PRE" : "POST") \(Int(connection.gainDB))").font(.system(size: 8, design: .monospaced)).foregroundStyle(.secondary) }
                     }.frame(width: 98, height: 48).background(connection == nil ? .clear : color.opacity(0.06)).overlay(Rectangle().stroke(DeskStyle.line, lineWidth: 0.5))
                 }.buttonStyle(.plain).disabled(kind == "bus" && id == bus.id)

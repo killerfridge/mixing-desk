@@ -147,9 +147,18 @@ struct PipelineView: View {
         .background(Color.clear)
         .onContinuousHover { phase in if case .active(let location) = phase, connecting != nil { pointer = location } }
     }
+    private func metersVisible(_ node: PipelineNodeID) -> Bool {
+        guard viewport.width > 0, let p = positions[node.key] else { return false }
+        let rect = CGRect(x: p.x*zoom+pan.width, y: p.y*zoom+pan.height,
+                          width: PipelineGeometry.card.width*zoom, height: PipelineGeometry.card.height*zoom)
+        // Offscreen cards retain their editors and identities, but subscribe to
+        // telemetry only near the viewport. Dense desks otherwise re-layout
+        // every native field for meter changes on dozens of invisible blocks.
+        return rect.intersects(CGRect(origin: .zero, size: viewport).insetBy(dx: -30, dy: -30))
+    }
     private func nodeCard(_ node: PipelineNodeID) -> some View {
         PipelineNodeCard(node: node, selected: selectedNode == node, compatible: connecting.map { problem(from: $0, to: node) == nil } ?? false,
-                         name: name(node), select: { selectedNode = node; selectedConnection = nil; focused = true },
+                         name: name(node), metersVisible: metersVisible(node), select: { selectedNode = node; selectedConnection = nil; focused = true },
                          configure: { configure(node) }, inserts: { editor = .inserts(node) },
                          move: { translation in
                             if moving?.0 != node.key, let p = positions[node.key] { moving = (node.key, p) }
@@ -256,7 +265,7 @@ struct PipelineView: View {
             // New blocks must not cover a retained or manually moved block.
             // Discovery/reconnection never enters this path for existing IDs.
             while positions.values.contains(where: {
-                abs($0.x-candidate.x) < PipelineGeometry.card.width + 20 && abs($0.y-candidate.y) < PipelineGeometry.card.height + 20
+                abs($0.x-candidate.x) < PipelineGeometry.card.width + 20 && abs($0.y-candidate.y) < PipelineGeometry.card.height + 12
             }) { candidate.y += 250 }
             positions[node.key] = candidate
         }

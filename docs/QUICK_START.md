@@ -18,7 +18,7 @@ For an instrument, choose Desk → Add Channel. In Channel Settings, choose the 
 
 Start with a low headphone level, choose Start Audio, and approve the requested microphone/system-audio access. If denied, open Privacy & Security and enable Mixing Desk for Microphone and Screen & System Audio Recording (names vary by macOS). Try Start Audio again after changing permissions; quit/reopen if macOS requires it.
 
-Use Mixer Monitoring with duplicate direct monitoring disabled on your interface. Direct Guitar Monitoring is for hearing Guitar-role strips through the interface while their call/stream/record feeds remain active. Watch clipping indicators: there is no output limiter.
+Use Mixer Monitoring with duplicate direct monitoring disabled on your interface. Direct Guitar Monitoring is for hearing Guitar-role strips through the interface while their call/stream/record feeds remain active. Channel and final-output protection are enabled by default. Amber LIMIT shows successful gain reduction; red overload indicators latch separately. Protection adds 2 ms and cannot repair input or plugin distortion. Click a meter to reset its held dBFS peak.
 
 ## 4. Feed a call or stream
 
@@ -31,3 +31,5 @@ For recording, create a multichannel device and patch direct strip outputs to di
 Prefer a visual patch bay? Open **Pipeline** to connect the same channels, buses, and output devices by dragging cables or using **Connect to…**. See the [Pipeline guide](PIPELINE.md) for channel mapping, mix-minus highlighting, and undo.
 
 The last valid session is autosaved. Export Session makes a separate backup. Closing the window leaves audio running in the menu bar; Stop Audio or Quit ends it. Opening a saved session stops audio until you choose Start Audio again.
+
+Click level readouts in Desk or Pipeline for exact numeric entry; hold Shift while dragging for fine adjustment. **Solo: N · Clear** or **⇧⌘L** clears all monitor solos. **Desk → Reset All Meters** resets all held peaks and overload indicators.

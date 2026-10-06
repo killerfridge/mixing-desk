@@ -142,12 +142,13 @@ OSStatus render(AudioObjectID,const AudioTimeStamp* now,const AudioBufferList* i
     if(h.previousTime && double(tick-h.previousTime)*h.timebase.numer/h.timebase.denom > double(n)/48000*1e9*1.8) h.underruns++;
     h.previousTime=tick; h.cycles++; return noErr;
 }
-NSDictionary* meter(Meter m) { return @{ @"peakL":@(m.peakL),@"peakR":@(m.peakR),@"rmsL":@(m.rmsL),@"rmsR":@(m.rmsR),@"clip":@(m.clip)}; }
+NSDictionary* meter(Meter m, NSString* ownerID) { return @{ @"id":ownerID ?: @"", @"heldL":@(m.heldL),@"heldR":@(m.heldR),@"reductionDB":@(m.reductionDB), @"peakL":@(m.peakL),@"peakR":@(m.peakR),@"rmsL":@(m.rmsL),@"rmsR":@(m.rmsR),@"clip":@(m.clip)}; }
 }
 
 @implementation MDAudioController {
     std::unique_ptr<Host> _host;
     NSDictionary* _session;
+    NSArray* _outputGroups;
     NSArray* _offline;
     NSString* _lastError;
     NSArray* _synchronization;
@@ -364,6 +365,7 @@ NSDictionary* meter(Meter m) { return @{ @"peakL":@(m.peakL),@"peakR":@(m.peakR)
     NSArray* strips=session[@"strips"], *buses=session[@"buses"], *routes=session[@"routes"];
     if(strips.count>MaxStrips || buses.count>MaxBuses || routes.count>MaxRoutes) return fail(error,@"Mixer capacity: 64 strips, 16 buses, 512 output routes.");
     [_plugins prepareSession:session retireAfter:h.engine.publishedGeneration()+1];
+    cfg.outputProtectionEnabled=session[@"outputProtectionEnabled"] ? [session[@"outputProtectionEnabled"] boolValue] : true;
     cfg.stripCount=(int)strips.count;cfg.busCount=(int)buses.count;cfg.routeCount=(int)routes.count;
     auto index = [](NSArray* array,NSString* id) -> int { for(NSUInteger i=0;i<array.count;++i) if([array[i][@"id"] isEqual:id]) return (int)i;return -1; };
     auto inserts = [&](NSDictionary* dictionary,auto& owner) -> bool {
@@ -394,6 +396,7 @@ NSDictionary* meter(Meter m) { return @{ @"peakL":@(m.peakL),@"peakR":@(m.peakR)
     for(int i=0;i<cfg.stripCount;++i) {
         NSDictionary* d=strips[i],*src=d[@"source"];auto& s=cfg.strips[i];
         if(!inserts(d,s))return NO;
+        s.limiterEnabled=d[@"limiterEnabled"] ? [d[@"limiterEnabled"] boolValue] : true;
         s.identity=identity(d[@"id"]);s.sourceIdentity=identity(sourceKey(src));
         s.trim=dbGain([d[@"trimDB"] floatValue]);s.fader=dbGain([d[@"faderDB"] floatValue]);s.pan=[d[@"pan"] floatValue];s.polarity=[d[@"polarity"] boolValue];s.mute=[d[@"muted"] boolValue];s.solo=[d[@"solo"] boolValue];
         s.directGuitar=[session[@"monitoringMode"] isEqual:@"directGuitar"] && [d[@"role"] isEqual:@"guitar"];
@@ -420,16 +423,39 @@ NSDictionary* meter(Meter m) { return @{ @"peakL":@(m.peakL),@"peakR":@(m.peakR)
         if(it!=h.outputs.end() && ch.count && [ch[0] intValue]>=0 && [ch[0] intValue]<available)r.left=it->second+[ch[0] intValue];
         if(it!=h.outputs.end() && ch.count>1 && [ch[1] intValue]>=0 && [ch[1] intValue]<available)r.right=it->second+[ch[1] intValue];
     }
-    std::string message;if(!h.engine.publish(cfg,message))return fail(error,[NSString stringWithUTF8String:message.c_str()]);
+    NSMutableDictionary* destinations=[NSMutableDictionary dictionary];
+    for(const auto& entry:h.outputs) {
+        NSString* uid=[NSString stringWithUTF8String:entry.first.c_str()];AudioObjectID device=deviceForUID(uid);
+        NSString* name=strprop(device,kAudioObjectPropertyName,uid);
+        int count=channels(device,kAudioObjectPropertyScopeOutput);
+        for(int channel=0;channel<count && entry.second+channel<MaxChannels;++channel) {
+            int offset=entry.second+channel;
+            cfg.outputIdentities[offset]=identity([NSString stringWithFormat:@"%@:%d",uid,channel]);
+            destinations[@(offset)]=@{@"uid":uid,@"channel":@(channel),@"name":[NSString stringWithFormat:@"%@ · Ch %d",name,channel+1]};
+        }
+    }
+    std::string message;
+    if(!cfg.validate(message))return fail(error,[NSString stringWithUTF8String:message.c_str()]);
+    NSMutableArray* groups=[NSMutableArray array];
+    for(int g=0;g<cfg.protectionGroupCount;++g) {
+        const auto& group=cfg.protectionGroups[g];NSMutableArray* members=[NSMutableArray array];
+        for(int c=group.firstChannel;c>=0;c=cfg.nextProtectionChannel[c])if(destinations[@(c)])[members addObject:destinations[@(c)]];
+        [groups addObject:@{@"id":[NSString stringWithFormat:@"%llu",(unsigned long long)group.identity],@"identity":@(group.identity),@"destinations":members}];
+    }
+    if(!h.engine.publish(cfg,message))return fail(error,[NSString stringWithUTF8String:message.c_str()]);
     if(!h.callback)h.engine.activateStopped();
     [_plugins collectThrough:h.engine.completedGeneration()];
-    _session=[session copy];return YES;
+    _outputGroups=[groups copy];_session=[session copy];return YES;
 }
 - (NSDictionary*)status {
     [_plugins collectThrough:_host->engine.completedGeneration()];
-    NSMutableArray* strips=[NSMutableArray array],*buses=[NSMutableArray array];
-    for(NSUInteger i=0;i<[_session[@"strips"] count];++i)[strips addObject:meter(_host->engine.stripMeter((int)i))];
-    for(NSUInteger i=0;i<[_session[@"buses"] count];++i)[buses addObject:meter(_host->engine.busMeter((int)i))];
+    NSMutableArray* strips=[NSMutableArray array],*buses=[NSMutableArray array],*outputs=[NSMutableArray array];
+    for(NSUInteger i=0;i<[_session[@"strips"] count];++i)[strips addObject:meter(_host->engine.stripMeterForOwner(identity(_session[@"strips"][i][@"id"])),_session[@"strips"][i][@"id"])];
+    for(NSUInteger i=0;i<[_session[@"buses"] count];++i)[buses addObject:meter(_host->engine.busMeterForOwner(identity(_session[@"buses"][i][@"id"])),_session[@"buses"][i][@"id"])];
+    for(NSDictionary* group in _outputGroups) {
+        NSMutableDictionary* data=[meter(_host->engine.outputMeterForGroup([group[@"identity"] unsignedLongLongValue]),group[@"id"]) mutableCopy];
+        data[@"destinations"]=group[@"destinations"];[outputs addObject:data];
+    }
     bool reconfigure=false;
     if(_host->hardwareChanged.exchange(false) && _host->aggregate) {
         for(const auto& device:_host->watched) {
@@ -437,9 +463,10 @@ NSDictionary* meter(Meter m) { return @{ @"peakL":@(m.peakL),@"peakR":@(m.peakR)
             if(current!=device.id || (current && (!prop<UInt32>(current,kAudioDevicePropertyDeviceIsAlive) || prop<Float64>(current,kAudioDevicePropertyNominalSampleRate)!=48000 || channels(current,kAudioObjectPropertyScopeInput)!=device.inputs || channels(current,kAudioObjectPropertyScopeOutput)!=device.outputs))) {reconfigure=true;break;}
         }
     }
-    return @{@"plugins":[_plugins status],@"running":@(_host->aggregate!=0 && _host->callback),@"bufferFrames":@(_host->frames),@"estimatedLatencyMs":@(_host->latencyMs),@"load":@(_host->load.load()),@"underruns":@(_host->underruns.load()),@"cycles":@(_host->cycles.load()),@"hardwareChanged":@(reconfigure),@"synchronization":_synchronization ?: @[],@"offline":_offline ?: @[],@"strips":strips,@"buses":buses};
+    return @{@"outputProtection":outputs,@"protectionLatencyFrames":@(ProtectionLatency),@"plugins":[_plugins status],@"running":@(_host->aggregate!=0 && _host->callback),@"bufferFrames":@(_host->frames),@"estimatedLatencyMs":@(_host->latencyMs),@"load":@(_host->load.load()),@"underruns":@(_host->underruns.load()),@"cycles":@(_host->cycles.load()),@"hardwareChanged":@(reconfigure),@"synchronization":_synchronization ?: @[],@"offline":_offline ?: @[],@"strips":strips,@"buses":buses};
 }
-- (void)clearClips { _host->engine.clearClip(); }
+- (void)resetMeter:(NSString*)ownerID isBus:(BOOL)isBus { _host->engine.resetMeter(identity(ownerID),isBus);if(!_host->callback)_host->engine.serviceMeterResetsStopped(); }
+- (void)resetAllMeters { _host->engine.resetAllMeters();if(!_host->callback)_host->engine.serviceMeterResetsStopped(); }
 - (NSArray*)virtualDevices {return driverConfiguration()[@"devices"] ?: @[];}
 - (NSDictionary*)driverStatus {
     NSString* path=@"/Library/Audio/Plug-Ins/HAL/MixingDeskAudio.driver/Contents/Info.plist";

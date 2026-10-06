@@ -105,9 +105,25 @@ public struct ChannelStrip: Codable, Equatable, Identifiable, Sendable {
     public var polarity = false
     public var muted = false
     public var solo = false
+    public var limiterEnabled = true
     public var sends: [Send] = []
     public var inserts: [InsertSlot] = []
     public init(name: String = "Channel") { self.name = name }
+    private enum CodingKeys: String, CodingKey {
+        case id, name, color, role, source, trimDB, faderDB, pan, polarity, muted, solo, limiterEnabled, sends, inserts
+    }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id); name = try c.decode(String.self, forKey: .name)
+        color = try c.decode(String.self, forKey: .color); role = try c.decode(String.self, forKey: .role)
+        source = try c.decode(SourceBinding.self, forKey: .source)
+        trimDB = try c.decode(Double.self, forKey: .trimDB); faderDB = try c.decode(Double.self, forKey: .faderDB)
+        pan = try c.decode(Double.self, forKey: .pan); polarity = try c.decode(Bool.self, forKey: .polarity)
+        muted = try c.decode(Bool.self, forKey: .muted); solo = try c.decode(Bool.self, forKey: .solo)
+        limiterEnabled = try c.decodeIfPresent(Bool.self, forKey: .limiterEnabled) ?? true
+        sends = try c.decode([Send].self, forKey: .sends)
+        inserts = try c.decodeIfPresent([InsertSlot].self, forKey: .inserts) ?? []
+    }
 }
 public struct Bus: Codable, Equatable, Identifiable, Sendable {
     public var id = UUID().uuidString
@@ -138,12 +154,13 @@ public struct Session: Codable, Equatable, Sendable {
     public var monitorDeviceUID = ""
     public var bufferFrames = 128
     public var monitoringMode = "mixer"
+    public var outputProtectionEnabled = true
     public var strips: [ChannelStrip] = []
     public var buses: [Bus] = []
     public var routes: [OutputRoute] = []
     public var pipelineLayout: PipelineLayout?
     public init() {}
-    private enum CodingKeys: String, CodingKey { case version, name, monitorDeviceUID, bufferFrames, monitoringMode, strips, buses, routes, pipelineLayout }
+    private enum CodingKeys: String, CodingKey { case version, name, monitorDeviceUID, bufferFrames, monitoringMode, outputProtectionEnabled, strips, buses, routes, pipelineLayout }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         version = try c.decode(Int.self, forKey: .version)
@@ -151,6 +168,7 @@ public struct Session: Codable, Equatable, Sendable {
         monitorDeviceUID = try c.decode(String.self, forKey: .monitorDeviceUID)
         bufferFrames = try c.decode(Int.self, forKey: .bufferFrames)
         monitoringMode = try c.decode(String.self, forKey: .monitoringMode)
+        outputProtectionEnabled = try c.decodeIfPresent(Bool.self, forKey: .outputProtectionEnabled) ?? true
         strips = try c.decode([ChannelStrip].self, forKey: .strips)
         buses = try c.decode([Bus].self, forKey: .buses)
         routes = try c.decode([OutputRoute].self, forKey: .routes)

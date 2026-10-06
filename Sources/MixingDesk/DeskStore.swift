@@ -29,12 +29,44 @@ struct ClockMember: Identifiable, Equatable {
     var id: String { uid }; let uid: String; let name: String; let corrected: Bool
     init(_ data: [String: Any]) { uid = data["uid"] as? String ?? ""; name = data["name"] as? String ?? "Audio source"; corrected = (data["driftCorrection"] as? NSNumber)?.intValue == 1 }
 }
-struct MeterValue: Equatable { var peakL: Float = 0; var peakR: Float = 0; var rmsL: Float = 0; var rmsR: Float = 0; var clip = false
-    init(_ data: [String: Any] = [:]) { peakL = (data["peakL"] as? NSNumber)?.floatValue ?? 0; peakR = (data["peakR"] as? NSNumber)?.floatValue ?? 0; rmsL = (data["rmsL"] as? NSNumber)?.floatValue ?? 0; rmsR = (data["rmsR"] as? NSNumber)?.floatValue ?? 0; clip = data["clip"] as? Bool ?? false }
+struct MeterValue: Equatable {
+    var id = ""
+    var peakL: Float = 0; var peakR: Float = 0; var rmsL: Float = 0; var rmsR: Float = 0
+    var heldL: Float = 0; var heldR: Float = 0; var reductionDB: Float = 0; var clip = false
+    var quiet: MeterValue {
+        var value = self; value.peakL = 0; value.peakR = 0; value.rmsL = 0; value.rmsR = 0; value.reductionDB = 0
+        return value
+    }
+    var heldDescription: String {
+        let peak = max(heldL, heldR)
+        return peak > 0 ? String(format: "%.1f", 20*log10(peak)) : "−∞"
+    }
+    init(_ data: [String: Any] = [:]) {
+        id = data["id"] as? String ?? ""
+        peakL = (data["peakL"] as? NSNumber)?.floatValue ?? 0; peakR = (data["peakR"] as? NSNumber)?.floatValue ?? 0
+        rmsL = (data["rmsL"] as? NSNumber)?.floatValue ?? 0; rmsR = (data["rmsR"] as? NSNumber)?.floatValue ?? 0
+        heldL = (data["heldL"] as? NSNumber)?.floatValue ?? 0; heldR = (data["heldR"] as? NSNumber)?.floatValue ?? 0
+        reductionDB = (data["reductionDB"] as? NSNumber)?.floatValue ?? 0; clip = data["clip"] as? Bool ?? false
+    }
+}
+struct OutputProtectionValue: Equatable {
+    var meter: MeterValue
+    var destinations: [String]
+    var destinationUIDs: [String]
+    init(_ data: [String: Any]) {
+        meter = MeterValue(data)
+        let members = data["destinations"] as? [[String: Any]] ?? []
+        destinations = members.compactMap { $0["name"] as? String }
+        destinationUIDs = members.compactMap { $0["uid"] as? String }
+    }
 }
 struct MeterSnapshot: Equatable {
     var strips: [MeterValue] = []
     var buses: [MeterValue] = []
+    var outputs: [OutputProtectionValue] = []
+    func meter(ownerID: String, isBus: Bool) -> MeterValue {
+        (isBus ? buses : strips).first { $0.id == ownerID } ?? MeterValue()
+    }
 }
 // High-frequency readings have their own observers. Publishing these on
 // DeskStore invalidates every strip, sheet, app scene, and menu at meter rate,
@@ -67,6 +99,9 @@ struct LoadSnapshot: Equatable {
     let engineLoad = DeskLoad()
     @Published var actualFrames = 128
     @Published var estimatedLatency: Double = 0
+    @Published var protectionLatencyFrames = 96
+    var protectionLatencyMS: Double { Double(protectionLatencyFrames) / 48 }
+    var soloCount: Int { session.strips.filter(\.solo).count }
     @Published var offline: [String] = []
     @Published var clockMembers: [ClockMember] = []
     @Published var presets: [URL] = []
@@ -158,18 +193,26 @@ struct LoadSnapshot: Equatable {
     func receiveStatus(_ status: [String: Any]) {
         let running = wantsRunning && (status["running"] as? Bool ?? false)
         if self.running != running { self.running = running }
-        meters.update(running ? MeterSnapshot(
+        var snapshot = MeterSnapshot(
             strips: (status["strips"] as? [[String: Any]] ?? []).map(MeterValue.init),
-            buses: (status["buses"] as? [[String: Any]] ?? []).map(MeterValue.init)) : MeterSnapshot())
+            buses: (status["buses"] as? [[String: Any]] ?? []).map(MeterValue.init),
+            outputs: (status["outputProtection"] as? [[String: Any]] ?? []).map(OutputProtectionValue.init))
+        if !running {
+            snapshot.strips = snapshot.strips.map(\.quiet); snapshot.buses = snapshot.buses.map(\.quiet)
+            snapshot.outputs = snapshot.outputs.map { var value = $0; value.meter = value.meter.quiet; return value }
+        }
+        meters.update(snapshot)
         engineLoad.update(LoadSnapshot(load: (status["load"] as? NSNumber)?.doubleValue ?? 0,
                                        underruns: (status["underruns"] as? NSNumber)?.intValue ?? 0))
         let frames = (status["bufferFrames"] as? NSNumber)?.intValue ?? 128
+        let protectionFrames = (status["protectionLatencyFrames"] as? NSNumber)?.intValue ?? 96
         let latency = (status["estimatedLatencyMs"] as? NSNumber)?.doubleValue ?? 0
         let offline = status["offline"] as? [String] ?? []
         let plugins = Dictionary(uniqueKeysWithValues: (status["plugins"] as? [[String: Any]] ?? []).compactMap { item in (item["id"] as? String).map { ($0, item) } })
         let clocks = (status["synchronization"] as? [[String: Any]] ?? []).map(ClockMember.init)
         if actualFrames != frames { actualFrames = frames }
         if estimatedLatency != latency { estimatedLatency = latency }
+        if protectionLatencyFrames != protectionFrames { protectionLatencyFrames = protectionFrames }
         if self.offline != offline { self.offline = offline }
         if !NSDictionary(dictionary: pluginStatus).isEqual(to: plugins) { pluginStatus = plugins }
         if clockMembers != clocks { clockMembers = clocks }
@@ -378,7 +421,17 @@ struct LoadSnapshot: Equatable {
             }
         } catch { self.error = error.localizedDescription }
     }
-    func clearClips() { let audio = audio; audioQueue.async { audio.clearClips() } }
+    func clearAllSolos() {
+        guard soloCount > 0 else { return }
+        var next = session
+        for i in next.strips.indices { next.strips[i].solo = false }
+        session = next; apply()
+    }
+    func resetMeter(ownerID: String, isBus: Bool) {
+        let audio = audio
+        audioQueue.async { audio.resetMeter(ownerID, isBus: isBus) }
+    }
+    func resetAllMeters() { let audio = audio; audioQueue.async { audio.resetAllMeters() } }
     func createDevice(_ name: String, channels: Int) { let audio = audio; audioQueue.async { [weak self] in do { try audio.createVirtualDevice(name, channels: channels); DispatchQueue.main.async { self?.refreshDiscovery() } } catch { let message = error.localizedDescription; DispatchQueue.main.async { self?.error = message } } } }
     func renameDevice(_ device: VirtualDevice, name: String) { let audio = audio; audioQueue.async { [weak self] in do { try audio.renameVirtualDevice(device.uid, name: name); DispatchQueue.main.async { self?.refreshDiscovery() } } catch { let message = error.localizedDescription; DispatchQueue.main.async { self?.error = message } } } }
     func deleteDevice(_ device: VirtualDevice) {

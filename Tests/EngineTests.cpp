@@ -39,9 +39,11 @@ struct Rig {
 void close(float actual,float expected,float tolerance=1e-4) {if(std::abs(actual-expected)>tolerance){std::cerr<<"Expected "<<expected<<", got "<<actual<<"\n";std::abort();}}
 #include "EQChecks.hpp"
 #include "HostedInsertChecks.hpp"
+#include "ProtectionChecks.hpp"
 int main(int argc,char** argv) {
     testEqualizer();
     testHostedInserts();
+    testProtection();
     const float center=std::sqrt(.5f);
     {Rig r;r.fill(0,.2);r.publish();r.render();close(r.output[0][N-1],.2*center);close(r.output[1][N-1],.2*center);r.config.strips[0].pan=-1;r.publish();r.render();close(r.output[0][N-1],.2);close(r.output[1][N-1],0);}
     {Rig r;r.config.strips[0].mono=false;r.config.strips[0].right=1;r.config.strips[1].mute=true;r.fill(0,.2);r.fill(1,.4);r.publish();r.render();close(r.output[0][N-1],.2);close(r.output[1][N-1],.4);r.config.strips[0].pan=1;r.publish();r.render();close(r.output[0][N-1],0);close(r.output[1][N-1],.4);}
@@ -52,7 +54,7 @@ int main(int argc,char** argv) {
     {Rig r;r.config.buses[0].sendCount=1;r.config.buses[0].sends[0]={1,1,false};r.config.buses[1].sendCount=1;r.config.buses[1].sends[0]={0,1,false};std::string error;assert(!r.engine.publish(r.config,error));}
     {Rig r;r.fill(0,.3);r.config.strips[0].trim=2;r.config.strips[0].fader=.5;r.config.strips[0].polarity=true;r.config.routes[0]={false,true,0,0,-1,1};r.config.routes[1]={false,false,0,2,-1,1};r.publish();r.render();close(r.output[0][N-1],-.6);close(r.output[2][N-1],-.3);}
     {Rig r;r.fill(0,.5);r.publish();r.render();float before=r.output[0][N-1];r.config.strips[0].fader=0;r.publish();r.render(1);assert(std::abs(r.output[0][0]-before)<.003);r.render();close(r.output[0][N-1],0);}
-    {Rig r;r.fill(0,2);r.publish();r.render();assert(r.engine.stripMeter(0).clip);r.engine.clearClip();assert(!r.engine.stripMeter(0).clip);}
+    {Rig r;r.config.strips[0].limiterEnabled=false;r.fill(0,2);r.publish();r.render();assert(r.engine.stripMeter(0).clip);r.fill(0,0);r.render();r.engine.resetAllMeters();r.render(1);assert(!r.engine.stripMeter(0).clip && r.engine.stripMeter(0).heldL==0);}
     {Rig r;r.fill(0,.2);r.config.strips[0].left=-1;r.publish();r.render();close(r.output[0][N-1],0);}
     {TimestampRing ring(2);float input[8]={1,2,3,4,5,6,7,8},output[8];ring.read(100,output,4);for(float v:output)close(v,0);ring.write(100,input,4);ring.read(100,output,4);for(int i=0;i<8;++i)close(output[i],input[i]);ring.read(200,output,4);for(float v:output)close(v,0);ring.write(100+16384,input,4);ring.read(100,output,4);for(float v:output)close(v,0);}
     {Rig r;r.fill(0,.2);r.publish();std::thread control([&]{for(int i=0;i<20000;++i){auto c=r.config;c.strips[0].fader=(i%10)/10.f;std::string error;assert(r.engine.publish(c,error));}});for(int i=0;i<20000;++i){r.render(1);for(float sample:r.output[0])assert(std::isfinite(sample));}control.join();}

@@ -13,7 +13,7 @@ public struct RoutingChange {
         merge(\Session.monitorDeviceUID, from, to, &result)
         result.strips = try mergeItems(from.strips, to.strips, result.strips) { a, b, live in
             merge(\ChannelStrip.name, a, b, &live); merge(\ChannelStrip.color, a, b, &live)
-            merge(\ChannelStrip.role, a, b, &live)
+            merge(\ChannelStrip.role, a, b, &live); merge(\ChannelStrip.limiterEnabled, a, b, &live)
             merge(\SourceBinding.kind, a.source, b.source, &live.source)
             merge(\SourceBinding.deviceUID, a.source, b.source, &live.source)
             merge(\SourceBinding.bundleID, a.source, b.source, &live.source)

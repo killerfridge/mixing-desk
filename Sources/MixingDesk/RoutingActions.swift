@@ -70,6 +70,7 @@ extension DeskStore {
             guard let i = s.strips.firstIndex(where: { $0.id == value.id }) else { throw SessionError.invalid("This channel no longer exists.") }
             s.strips[i].name = value.name; s.strips[i].color = value.color
             s.strips[i].role = value.role; s.strips[i].source = value.source
+            s.strips[i].limiterEnabled = value.limiterEnabled
         }
     }
     func outputProblem(_ route: OutputRoute, existing: OutputRoute? = nil) -> String? {

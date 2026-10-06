@@ -34,7 +34,7 @@ struct PipelineNavigation: NSViewRepresentable {
 }
 
 enum PipelineGeometry {
-    static let card = CGSize(width: 240, height: 218)
+    static let card = CGSize(width: 240, height: 238)
     static let portY: CGFloat = 64
     static func port(_ position: PipelinePosition, output: Bool) -> CGPoint { CGPoint(x: position.x + (output ? card.width : 0), y: position.y + portY) }
     static func controls(_ a: CGPoint, _ b: CGPoint) -> (CGPoint, CGPoint) {
@@ -102,12 +102,21 @@ struct PipelineWires: View {
 /// Only this small leaf subscribes to 30 Hz readings.
 struct PipelineMeter: View {
     @ObservedObject var readings: DeskMeters
-    let index: Int?
+    let ownerID: String
     let isBus: Bool
     let running: Bool
+    var reset: () -> Void
     var body: some View {
-        let values = isBus ? readings.value.buses : readings.value.strips
-        let value = running && index.map { values.indices.contains($0) } == true ? values[index!] : MeterValue()
+        let reading = readings.value.meter(ownerID: ownerID, isBus: isBus)
+        let value = running ? reading : reading.quiet
+        PipelineMeterDisplay(value: value, isBus: isBus, reset: reset)
+    }
+}
+struct PipelineMeterDisplay: View {
+    let value: MeterValue
+    let isBus: Bool
+    var reset: () -> Void
+    var body: some View {
         HStack(spacing: 5) {
             GeometryReader { g in
                 VStack(spacing: 2) {
@@ -115,13 +124,18 @@ struct PipelineMeter: View {
                     bar(value.peakR, width: g.size.width)
                 }
             }.frame(height: 9)
-            Circle().fill(value.clip ? .red : Color.white.opacity(0.08)).frame(width: 5, height: 5)
-        }.accessibilityLabel("\(isBus ? "Bus" : "Channel") level meter\(value.clip ? ", clipping" : "")")
+            Text("\(value.heldDescription) dBFS").font(.system(size: 8, design: .monospaced)).fixedSize()
+            Circle().fill(value.clip ? .red : DeskStyle.meterTrack).frame(width: 5, height: 5)
+        }.contentShape(Rectangle()).onTapGesture(perform: reset)
+            .accessibilityElement(children: .ignore).accessibilityLabel("\(isBus ? "Bus" : "Channel") level meter")
+            .accessibilityValue("Held peak \(value.heldDescription) dBFS\(value.clip ? ", overload" : "")")
+            .accessibilityAction(named: Text("Reset meter"), reset)
+            .help(isBus ? "Click to reset this bus meter. Peak is held until reset. Final output protection follows bus meters, route gains and summing." : "Click to reset this channel meter. Protected post-fader peak is held until reset.")
     }
     private func bar(_ value: Float, width: CGFloat) -> some View {
         let level = min(1, max(0, (20 * log10(max(0.00001, Double(value))) + 60) / 60))
         return ZStack(alignment: .leading) {
-            Capsule().fill(Color.white.opacity(0.06))
+            Capsule().fill(DeskStyle.meterTrack)
             Capsule().fill(value >= 1 ? .red : Color.green.opacity(0.75)).frame(width: width * level)
         }.frame(height: 3)
     }

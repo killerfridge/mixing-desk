@@ -20,7 +20,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)updateSession:(NSDictionary<NSString*, id>*)session error:(NSError**)error;
 - (void)stop;
 - (NSDictionary<NSString*, id>*)status;
-- (void)clearClips;
+- (void)resetMeter:(NSString*)ownerID isBus:(BOOL)isBus;
+- (void)resetAllMeters;
 - (NSArray<NSDictionary<NSString*, id>*>*)virtualDevices;
 // Read-only: state, installedBuild, loadedBuild, protocolVersion, and message.
 - (NSDictionary<NSString*, id>*)driverStatus;

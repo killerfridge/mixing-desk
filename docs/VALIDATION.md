@@ -2,6 +2,18 @@
 
 Environment: Apple Silicon, macOS 26.2, Swift 6.1.2 / macOS 15.5 SDK from Command Line Tools.
 
+## Quality-of-life protection and controls — 2026-10-06
+
+- The release app and HAL driver build for arm64/macOS 14.4; bundle/signature/resource verification passes. The generated Xcode project includes the new shared controls and limiter header. Existing working-tree interface/appearance/Pipeline edits were retained.
+- The engine, driver host, Apple AUHipass mono/stereo, synthetic VST3, and standalone session/model suites pass. The offline soak processed **172,800,000 frames (60 minutes) in 69.80 wall seconds**. Protection adds exactly **96 samples / 2 ms**, including bypass. These are synthetic checks, with no physical audio IO.
+- Protection coverage includes impulses and steady overload, smooth anticipatory attack, stereo linking, release recovery, smooth bypass, delayed below-threshold transparency, boundary peaks, finite protected outputs, summed route overload, overlapping physical output pairs, independent mono recordings, independent pre/post paths and sends, channel/bus plugin processing, transitive mix-minus, monitor-only solo, reassignment/aggregate-offset changes without stale delayed audio, and held peaks/reset ownership across reordering, deletion and stopping. The engine suite reports **zero render allocations**.
+- Version-1 JSON without protection keys defaults both stages on; independent channel/output bypass settings round-trip. Native store/control tests cover one-update solo clearing with unrelated settings preserved, shared numeric validation/precision/cancel/focus semantics, Shift-fader and Shift-slider anchoring, double-click reset, routing-gesture commit pairing, stable identity, and persistence.
+- The status regression passes with 300 changing held-peak, gain-reduction, output-group, meter and load snapshots and **zero whole-store notifications**. Stopped readings retain held peaks and overload latches. Pipeline meter subscriptions are limited to cards near the viewport while offscreen editor controls retain their identities.
+- The final dense Pipeline benchmark replays all 64 channel and 16 bus readings, rather than the earlier fixture's four repeated readings. It completed 300 ticks in 10.00 seconds with **zero desk notifications**, **53.2% of one CPU core**, a **21.29 ms heartbeat p95**, and **42.44 ms maximum**. A preceding run measured 44.7% CPU; an earlier run overlapping screenshot generation timed out. These are UI figures, not audio deadline measurements.
+- Actual SwiftUI review images are under `build/qol-review-images`, covering compact and comfortable Desk layouts in light/dark appearances, Pipeline, numeric entry, native Shift-drag, solo recovery, held peaks, active protection and bypass. Native appearance checks cover Light → Dark → Light → System; returning to System also restores the correct dynamic surface colours.
+- Native UI review exercised channel/bus meter clicks and exposed **Reset meter** accessibility actions in Desk and Pipeline with stopped, silent audio. Nonzero held-peak clearing and stable reset ownership are verified by the engine tests.
+- The current source/history credential-pattern audit passes. Full Xcode/XCTest is unavailable locally; equivalent standalone model checks ran. No new live hardware, true-peak, or vendor-plugin compatibility result is claimed. Sample-peak protection cannot repair distortion already present at an input or generated inside an insert.
+
 ## Editable Pipeline feature — 2026-10-05
 
 This feature follows the beta preparation below. It does not modify `v0.5.0-beta.1` or its draft release assets, and introduces no native driver, DSP, or routing-protocol changes.
