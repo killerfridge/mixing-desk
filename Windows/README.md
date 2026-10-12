@@ -4,6 +4,8 @@ An additional Windows application sharing the Mac version's C++ engine. The Mac
 SwiftUI application and its build scripts remain supported.
 
 **Development beta: Windows 11, Intel/AMD x64, WASAPI shared audio, 48 kHz.**
+Windows 10 22H2 (build 19045 or later) is also enabled for compatibility testing.
+This includes build 19045.6466; 32-bit Windows and ARM64 are not targets.
 This branch has not yet passed physical Windows audio or UI acceptance. Do not
 treat a successful cross-build as a validated release.
 The initial implementation's [validation record](VALIDATION.md) distinguishes
@@ -57,6 +59,14 @@ neither redistributes nor installs its driver. Additional independent cable pair
 may require separate downloads/licences from the supplier. The app also accepts
 other WASAPI capture and playback endpoints.
 
+Direct application capture on Windows 10 remains a physical-PC test item.
+[Microsoft's sample](https://learn.microsoft.com/en-us/samples/microsoft/windows-classic-samples/applicationloopbackaudio-sample/)
+documents build 20348 or later, while
+[OBS supports application capture on Windows 10 2004 and later](https://obsproject.com/kb/application-audio-capture-guide).
+Mixing Desk attempts activation on 22H2 and reports any failure for that source.
+If capture fails, route the application to a virtual cable and select its
+recording endpoint as the source. Other input devices can still be used.
+
 ## Controls and compatibility
 
 Desk, Patching and Pipeline edit one session. Pipeline supports draggable nodes,
@@ -93,7 +103,7 @@ and opaque unavailable-plugin preservation. Assertions stay enabled in release
 test builds. Windows CI builds and packages an artifact; it does not publish a
 release or install audio drivers.
 
-Before release, on a physical x64 Windows 11 PC:
+Before release, on physical x64 Windows 11 and Windows 10 22H2 PCs:
 
 - Verify launch on a clean account without the SDK or Visual Studio installed.
 - Verify source selection, channel mapping, start/stop, all three views, keyboard

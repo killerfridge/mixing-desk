@@ -269,7 +269,7 @@ sealed partial class MainWindow : Window
         p.Children.Add(Ui.Text("4 · Add effects and save your desk", 18));
         p.Children.Add(Ui.Text("Scan installed Windows x64 VST3 effects from the Desk menu, then add them under Inserts. Effects use parameter controls. Mac Audio Units and missing effects retain their saved state but remain unavailable; bypass them explicitly to hear the dry signal. Export Session saves portable JSON. Device and application assignments must be rebound on another platform."));
         p.Children.Add(Ui.Text("Windows beta limits", 18));
-        p.Children.Add(Ui.Text("Windows 11 x64, 48 kHz engine, WASAPI shared audio, mono/stereo effects. No ASIO, custom virtual driver, VST2, MIDI, vendor effect windows, or parallel-path delay compensation. Device synchronisation adds buffering; instrument-monitoring latency is not guaranteed. Active plugins run in the app and can crash or hang it."));
+        p.Children.Add(Ui.Text("Windows 11 x64; Windows 10 22H2 compatibility testing. 48 kHz engine, WASAPI shared audio, mono/stereo effects. No ASIO, custom virtual driver, VST2, MIDI, vendor effect windows, or parallel-path delay compensation. Device synchronisation adds buffering; instrument-monitoring latency is not guaranteed. Active plugins run in the app and can crash or hang it."));
         p.Children.Add(Ui.Text("Closing the window keeps the tray mixer running. Quit from the File menu or tray to stop it. Sessions autosave under %LOCALAPPDATA%\\Mixing Desk. Audio stays local; there are no accounts, telemetry, automatic update checks, or audio-file recording."));
         return new ScrollViewer { Content = p, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
     }

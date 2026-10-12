@@ -1,7 +1,8 @@
-# Windows port validation — 7 October 2026
+# Windows port validation — updated 12 October 2026
 
 Implementation branch: `codex/windows-x64`, based on `d9ca210`.
-Validation host: Apple Silicon macOS. The existing Mac application, driver and
+Validation hosts: Apple Silicon macOS and GitHub's `windows-2025` runner.
+The existing Mac application, driver and
 shared engine sources are unchanged by this port.
 
 | Check | Result |
@@ -14,13 +15,24 @@ shared engine sources are unchanged by this port.
 | .NET session, routing history, EQ and binary/XML state checks | Passed |
 | WPF self-contained `win-x64` publish | Passed |
 | Windows native DLL, scanner and native test executables | Cross-compiled and linked as PE x86-64; exports and imports inspected |
-| Native tests executing on Windows, MSVC build, Windows CI | Not yet run |
+| Native tests executing on Windows, MSVC build, Windows CI | Passed at `2dd694b`; see the CI record below |
+| Windows 10 22H2 (including build 19045.6466) | Startup version gate allows it; physical launch/audio not yet tested |
 | Windows UI, physical devices, virtual cables and real VST3 vendors | Not yet tested |
 
 The local ZIP uses .NET SDK 10.0.401, CMake 4.4.3, Clang/LLD 21.1.5 and
 llvm-mingw UCRT headers/libraries (20260922). It includes the self-contained
 .NET runtime and dependency notices. The normal Windows build script uses
-Visual Studio's x64 toolchain; that build path still needs a Windows execution.
+Visual Studio's x64 toolchain.
+
+[Windows CI run 38230656562](https://github.com/killerfridge/mixing-desk/actions/runs/38230656562)
+passed at `2dd694b`, including MSVC compilation, native and model tests,
+self-contained WPF publishing and ZIP artifact upload. This runner does not
+validate Windows 10, interactive UI or physical audio devices.
+
+The 12 October compatibility change lowers the startup minimum from Windows 11
+to Windows 10 22H2 (build 19045) and replaces the Windows-11-only application
+capture error with activation diagnostics and a virtual-cable suggestion.
+The user's reported build is 19045.6466; it has not yet been tested with the app.
 
 The native diagnostics in the ZIP can run on Windows without installing an SDK.
 They include an isolated synthetic VST3 scanner/lifecycle fixture. The synthetic

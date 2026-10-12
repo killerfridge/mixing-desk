@@ -40,7 +40,7 @@ char *mdw_request(void *raw, const char *operation, const char *text) {
       result = true;
     } else {
       if (!h.host)
-        throw std::runtime_error("Live Windows audio requires Windows 11 x64");
+        throw std::runtime_error("Live audio requires the Windows x64 host");
       if (op == "devices")
         result = h.host->devices();
       else if (op == "applications")

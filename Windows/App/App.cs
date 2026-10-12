@@ -9,9 +9,10 @@ public sealed class App : Application
     [STAThread]
     public static void Main()
     {
-        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000) || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.X64)
+        // Windows 10 22H2 is the minimum compatibility-testing target.
+        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19045) || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.X64)
         {
-            MessageBox.Show("Mixing Desk requires Windows 11 on an Intel/AMD x64 PC.");
+            MessageBox.Show("Mixing Desk requires Windows 10 22H2 or Windows 11 on an Intel/AMD x64 PC.");
             return;
         }
         var app = new App { ShutdownMode = ShutdownMode.OnExplicitShutdown };

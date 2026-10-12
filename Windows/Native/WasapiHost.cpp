@@ -242,13 +242,17 @@ ComPtr<IAudioClient> applicationClient(DWORD pid) {
   ComPtr<Completion> callback;
   callback.Attach(new Completion);
   ComPtr<IActivateAudioInterfaceAsyncOperation> operation;
+  // Try the capability on Windows 10 too; activation reports availability.
+  constexpr auto captureError =
+      "Application capture could not start; restart the source app or route "
+      "its audio through a virtual-cable input";
   check(ActivateAudioInterfaceAsync(VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK,
                                     __uuidof(IAudioClient), &value,
                                     callback.Get(), &operation),
-        "Activate application capture");
+        captureError);
   if (WaitForSingleObject(callback->done, 10000) != WAIT_OBJECT_0)
     throw std::runtime_error("Application capture timed out");
-  check(callback->result, "Application capture requires Windows 11");
+  check(callback->result, captureError);
   return callback->client;
 }
 struct Endpoint {

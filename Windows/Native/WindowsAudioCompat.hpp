@@ -4,7 +4,8 @@
 #include <audioclientactivationparams.h>
 #else
 // SDK ABI declarations for MinGW cross-compilation. The Windows SDK supplies
-// these in audioclientactivationparams.h; the API itself requires build 20348+.
+// these in audioclientactivationparams.h. Runtime availability is checked by
+// activating process loopback; it is also available on recent Windows 10 builds.
 enum AUDIOCLIENT_ACTIVATION_TYPE {
   AUDIOCLIENT_ACTIVATION_TYPE_DEFAULT,
   AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK
