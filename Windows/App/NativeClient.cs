@@ -21,15 +21,18 @@ sealed class NativeClient : IAsyncDisposable
         {
             try
             {
+                StartupLog.Write("Loading DeskWindows.dll");
                 if (mdw_abi_version() != 1)
                     throw new InvalidOperationException("The native audio DLL is incompatible. Reinstall the complete Windows build.");
+                StartupLog.Write("Creating native audio host");
                 host = mdw_create();
                 if (host == IntPtr.Zero)
                     throw new InvalidOperationException("Windows audio could not initialize.");
+                StartupLog.Write("Native audio host ready");
                 ready.SetResult(Dispatcher.CurrentDispatcher);
                 Dispatcher.Run();
             }
-            catch (Exception e) { ready.TrySetException(e); }
+            catch (Exception e) { StartupLog.Write("Native control thread failed", e); ready.TrySetException(e); }
             finally { if (host != IntPtr.Zero) { mdw_destroy(host); host = IntPtr.Zero; } }
         })
         {

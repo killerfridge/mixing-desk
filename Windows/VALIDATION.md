@@ -16,7 +16,7 @@ shared engine sources are unchanged by this port.
 | WPF self-contained `win-x64` publish | Passed |
 | Windows native DLL, scanner and native test executables | Cross-compiled and linked as PE x86-64; exports and imports inspected |
 | Native tests executing on Windows, MSVC build, Windows CI | Passed at `2dd694b`; see the CI record below |
-| Windows 10 22H2 (including build 19045.6466) | Startup version gate allows it; physical launch/audio not yet tested |
+| Windows 10 22H2 (including build 19045.6466) | User launch at `a074b25` revealed a WPF style setup crash; correction needs a physical-PC retest |
 | Windows UI, physical devices, virtual cables and real VST3 vendors | Not yet tested |
 
 The local ZIP uses .NET SDK 10.0.401, CMake 4.4.3, Clang/LLD 21.1.5 and
@@ -32,7 +32,16 @@ validate Windows 10, interactive UI or physical audio devices.
 The 12 October compatibility change lowers the startup minimum from Windows 11
 to Windows 10 22H2 (build 19045) and replaces the Windows-11-only application
 capture error with activation diagnostics and a virtual-cable suggestion.
-The user's reported build is 19045.6466; it has not yet been tested with the app.
+The user's reported build is 19045.6466. Its .NET Runtime event log identified
+an unhandled `SetterBaseCollection` exception in `App.Main`: button and text-box
+styles were modified after insertion into application resources sealed them.
+All setters now precede insertion. Early managed startup exceptions are logged
+and shown in a native dialog, including failures before the main window exists.
+
+The build now includes a desktop startup check against the published app. It
+renders the main window, initializes the native host with a fresh session, and
+quits without starting audio. A failed launch prevents packaging. This closes
+a gap in the original checks, which published WPF but never launched it.
 
 The native diagnostics in the ZIP can run on Windows without installing an SDK.
 They include an isolated synthetic VST3 scanner/lifecycle fixture. The synthetic

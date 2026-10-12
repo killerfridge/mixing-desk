@@ -17,6 +17,19 @@ jobs:
       - name: Build, test and package
         shell: pwsh
         run: ./scripts/build-windows.ps1
+      - name: Collect startup diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build/startup-diagnostics | Out-Null
+          Copy-Item "$env:LOCALAPPDATA/Mixing Desk/Logs/*.log" build/startup-diagnostics -ErrorAction SilentlyContinue
+      - name: Upload startup diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MixingDesk-startup-diagnostics
+          path: build/startup-diagnostics/*.log
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: MixingDesk-windows-x64-development

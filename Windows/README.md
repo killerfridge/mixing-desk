@@ -22,7 +22,8 @@ PowerShell terminal at the repository root:
 ```
 
 The script builds native x64 binaries, runs the engine/Windows/model tests,
-publishes the self-contained WPF application, and produces a ZIP in
+publishes the self-contained WPF application, checks that it can open and render
+its main window and initialize the native host, and produces a ZIP in
 `build/windows-release`. It downloads pinned nlohmann/json and libsamplerate
 sources at build time. No runtime network access or Microsoft account is needed.
 
@@ -34,6 +35,15 @@ The ZIP includes native checks that require no SDK. In PowerShell, from the
 extracted folder, run `./Diagnostics/Test-Native.ps1`. They exercise the shared
 engine, session/clock code and a synthetic VST3 effect without opening hardware
 audio endpoints. They do not replace the physical audio checks below.
+
+`./Diagnostics/Test-Startup.ps1` checks desktop startup using a fresh session,
+then closes its test instance without starting audio or loading your saved
+session. The build script runs this check unless `-SkipTests` is specified.
+If normal launch fails, startup errors display a dialog and write details under
+`%LOCALAPPDATA%\Mixing Desk\Logs\startup-<process-id>.log`. These local logs
+include the app version, Windows version and startup checkpoints; nothing is
+uploaded automatically. Failures before .NET starts still require the Windows
+Application event log.
 
 ## First mix
 

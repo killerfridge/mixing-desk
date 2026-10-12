@@ -6,17 +6,19 @@ namespace MixingDesk;
 
 public sealed class App : Application
 {
-    [STAThread]
-    public static void Main()
+    public static int RunDesktop(bool smokeTest)
     {
-        // Windows 10 22H2 is the minimum compatibility-testing target.
-        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19045) || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.X64)
-        {
-            MessageBox.Show("Mixing Desk requires Windows 10 22H2 or Windows 11 on an Intel/AMD x64 PC.");
-            return;
-        }
+        StartupLog.Write("Creating WPF application");
         var app = new App { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        app.DispatcherUnhandledException += (_, e) => { MessageBox.Show(e.Exception.Message, "Mixing Desk", MessageBoxButton.OK, MessageBoxImage.Error); e.Handled = true; };
+        app.DispatcherUnhandledException += (_, e) =>
+        {
+            StartupLog.Write("Unhandled UI error", e.Exception);
+            e.Handled = true;
+            if (smokeTest)
+                app.Shutdown(1);
+            else
+                MessageBox.Show(e.Exception.Message + "\n\n" + StartupLog.LocationMessage, "Mixing Desk", MessageBoxButton.OK, MessageBoxImage.Error);
+        };
         // Keep system inputs on a light surface; desk labels use explicit theme colours.
         // An implicit white TextBlock style also affects system control templates.
         foreach (var type in new[] { typeof(ComboBox), typeof(Menu), typeof(TabItem) })
@@ -29,16 +31,19 @@ public sealed class App : Application
         var button = new Style(typeof(Button));
         button.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(10, 5, 10, 5)));
         button.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(3)));
-        app.Resources[typeof(Button)] = button;
         button.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.Black));
         button.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.WhiteSmoke));
+        // Inserting an implicit style into application resources seals it.
+        // Finish every setter before publishing the style.
+        app.Resources[typeof(Button)] = button;
         var box = new Style(typeof(TextBox));
         box.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(6)));
         box.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(3)));
-        app.Resources[typeof(TextBox)] = box;
         box.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.Black));
         box.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.WhiteSmoke));
-        app.Run(new MainWindow());
+        app.Resources[typeof(TextBox)] = box;
+        StartupLog.Write("Creating main window");
+        return app.Run(new MainWindow(smokeTest));
     }
 }
 static class Theme

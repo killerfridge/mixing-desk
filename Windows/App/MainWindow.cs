@@ -14,13 +14,14 @@ namespace MixingDesk;
 
 sealed partial class MainWindow : Window
 {
-    readonly DeskStore store = new(); readonly DockPanel root = new(); readonly ContentControl content = new();
+    readonly DeskStore store; readonly DockPanel root = new(); readonly ContentControl content = new();
     readonly TextBlock status = Ui.Text("Starting…", 12, Theme.Muted); readonly TextBlock message = Ui.Text("", 12);
     readonly Button start = new() { Content = "Start Audio" }; readonly ComboBox output = new() { Width = 270, Margin = new Thickness(4), DisplayMemberPath = "Name", SelectedValuePath = "Uid" };
     readonly TabControl tabs = new() { Margin = new Thickness(10, 0, 10, 0) }; readonly Dictionary<string, List<Meter>> meters = [];
     readonly System.Windows.Forms.NotifyIcon tray = new(); bool rebuilding, quitting; int selectedTab;
-    public MainWindow()
+    public MainWindow(bool smokeTest = false)
     {
+        store = new DeskStore(loadSavedSession: !smokeTest);
         Title = "Mixing Desk · Windows beta";
         Width = 1180;
         Height = 780;
@@ -75,7 +76,20 @@ sealed partial class MainWindow : Window
         store.Changed += Rebuild;
         store.MeterChanged += UpdateMeters;
         store.DiscoveryChanged += Rebuild;
-        Loaded += async (_, _) => { Show(); await store.Initialize(); };
+        var firstRender = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ContentRendered += (_, _) => { StartupLog.Write("Main window rendered"); firstRender.TrySetResult(); };
+        Loaded += async (_, _) =>
+        {
+            StartupLog.Write("Main window loaded; initializing session");
+            bool initialized = await store.Initialize();
+            StartupLog.Write(initialized ? "Session initialized" : "Session initialization failed");
+            if (smokeTest)
+            {
+                await firstRender.Task;
+                StartupLog.Write(initialized ? "PASS: desktop startup" : "FAIL: desktop startup");
+                await Quit(initialized ? 0 : 1);
+            }
+        };
         Closing += (_, e) => { if (!quitting) { e.Cancel = true; Hide(); } };
         PreviewKeyDown += (_, e) => { if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return; if (e.Key == Key.O) { _ = Open(); e.Handled = true; } if (e.Key == Key.S && (Keyboard.Modifiers & ModifierKeys.Shift) != 0) { _ = Export(); e.Handled = true; } if (e.Key == Key.Z) { store.Undo((Keyboard.Modifiers & ModifierKeys.Shift) != 0); e.Handled = true; } if (e.Key == Key.Y) { store.Undo(true); e.Handled = true; } if (e.Key == Key.L && (Keyboard.Modifiers & ModifierKeys.Shift) != 0) { store.Edit(s => s.Strips.ForEach(x => x.Solo = false)); e.Handled = true; } };
         tray.Icon = System.Drawing.SystemIcons.Application;
@@ -100,7 +114,7 @@ sealed partial class MainWindow : Window
         if (e.Mode == PowerModes.Suspend)
             Dispatcher.BeginInvoke(async () => { if (store.Running) await store.Toggle(); store.Info("Audio stopped for sleep. Restart audio when ready."); });
     }
-    async Task Quit()
+    async Task Quit(int exitCode = 0)
     {
         if (quitting)
             return;
@@ -109,7 +123,7 @@ sealed partial class MainWindow : Window
         tray.Visible = false;
         tray.Dispose();
         await store.DisposeAsync();
-        Application.Current.Shutdown();
+        Application.Current.Shutdown(exitCode);
     }
     async Task Open()
     {

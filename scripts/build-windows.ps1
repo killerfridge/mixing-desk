@@ -29,6 +29,10 @@ try {
         Copy-Item "$native/$Configuration/$binary" "$publish/Diagnostics/$binary"
     }
     Copy-Item Windows/Diagnostics/Test-Native.ps1 "$publish/Diagnostics/Test-Native.ps1"
+    Copy-Item Windows/Diagnostics/Test-Startup.ps1 "$publish/Diagnostics/Test-Startup.ps1"
+    if (-not $SkipTests) {
+        & "$publish/Diagnostics/Test-Startup.ps1"
+    }
     $version = (Get-Content release/version.txt -Raw).Trim()
     $archive = "build/windows-release/MixingDesk-$version-windows-dev-x64.zip"
     Compress-Archive -Path "$publish/*" -DestinationPath $archive -Force

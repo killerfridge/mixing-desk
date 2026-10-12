@@ -39,18 +39,18 @@ sealed class DeskStore : IAsyncDisposable
     }
     public string Message { get; private set; } = "Choose an output and sources, then start audio.";
     public event Action? Changed, MeterChanged, DiscoveryChanged;
-    public DeskStore()
+    public DeskStore(bool loadSavedSession = true)
     {
         try
         {
-            if (File.Exists(saved))
+            if (loadSavedSession && File.Exists(saved))
                 Session = Session.Decode(File.ReadAllText(saved));
         }
         catch (Exception e) { Message = "Saved session could not load: " + e.Message; }
         poll.Tick += async (_, _) => await Poll();
         apply.Tick += async (_, _) => { apply.Stop(); await Apply(); };
     }
-    public async Task Initialize()
+    public async Task<bool> Initialize()
     {
         await Refresh();
         try
@@ -58,12 +58,14 @@ sealed class DeskStore : IAsyncDisposable
             await native.Call("update", Session.ForHost());
             lastAudio = Session.ForHost();
         }
-        catch (Exception e) { Error(e); }
+        catch (Exception e) { Error(e); return false; }
         poll.Start();
         Changed?.Invoke();
+        return true;
     }
     public void Error(Exception e)
     {
+        StartupLog.Write("Mixer error", e);
         Message = e.Message;
         Changed?.Invoke();
     }
