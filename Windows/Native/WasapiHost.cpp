@@ -6,13 +6,18 @@
 #include <audioclient.h>
 #include <audiopolicy.h>
 #include <avrt.h>
-#include <functiondiscoverykeys_devpkey.h>
 #include <mmdeviceapi.h>
+#include <propkeydef.h>
 #include <set>
 #include <thread>
 #include <tlhelp32.h>
 #include <windows.h>
 #include <wrl/client.h>
+
+// Microsoft's SDK requires DEFINE_PROPERTYKEY from propkeydef.h first.
+// MinGW includes that dependency itself, so cross-builds do not catch this.
+#include <functiondiscoverykeys_devpkey.h>
+
 namespace desk::windows {
 using Microsoft::WRL::ComPtr;
 namespace {
