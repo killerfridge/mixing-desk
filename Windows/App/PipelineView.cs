@@ -273,7 +273,7 @@ sealed partial class MainWindow
             {
                 var effects = Ui.Button(chain.Count == 0 ? "⊕  Add effects…" : string.Join("\n", chain.Select((s, i) => $"{i + 1}  {s.DisplayName}{(s.Bypassed ? "  · BYP" : "")}")), () => InsertsDialog(node.Id, bus is not null));
                 effects.FontSize = 10;
-                effects.Height = 50;
+                effects.Height = chain.Count == 4 ? 64 : 50;
                 effects.Margin = new Thickness(3, 1, 3, 1);
                 effects.HorizontalContentAlignment = HorizontalAlignment.Left;
                 effects.VerticalContentAlignment = VerticalAlignment.Top;
@@ -398,9 +398,14 @@ sealed partial class MainWindow
         toolbar.Children.Add(Ui.Button("+", () => Zoom(pipelineZoom * 1.2)));
         toolbar.Children.Add(Ui.Button("Fit All", Fit));
         toolbar.Children.Add(Ui.Button("Auto Arrange", () => { store.Edit(s => { s.PipelineLayout ??= new(); s.PipelineLayout.Positions = new PipelineGraph(s).Arrange(); }, "Arrange pipeline", true, false); }));
-        var header = new StackPanel { Margin = new Thickness(16, 12, 16, 6) };
-        header.Children.Add(Ui.Text("Signal pipeline", 22));
-        header.Children.Add(Ui.Text("Connect your sources, mixes, and outputs.", 12, Theme.Muted));
+        var header = new StackPanel { Margin = new Thickness(16, 6, 16, 6) };
+        var headingRow = new WrapPanel();
+        headingRow.Children.Add(Ui.Text("Signal pipeline", 22));
+        var headerSubtitle = Ui.Text("Connect your sources, mixes, and outputs.", 12, Theme.Muted);
+        headerSubtitle.VerticalAlignment = VerticalAlignment.Center;
+        headerSubtitle.Margin = new Thickness(12, 4, 4, 4);
+        headingRow.Children.Add(headerSubtitle);
+        header.Children.Add(headingRow);
         header.Children.Add(toolbar);
         var dock = new DockPanel();
         DockPanel.SetDock(header, Dock.Top);

@@ -32,7 +32,8 @@ sealed partial class MainWindow
             session.Strips[1].Source.BundleID = "fixture:music";
             session.Strips[1].Name = "Music";
             session.Strips[2].Source.BundleID = "fixture:call";
-            session.Strips[0].Inserts.Add(new());
+            for (int i = 0; i < 4; ++i)
+                session.Strips[0].Inserts.Add(new());
             session.SelectMonitor("fixture:headphones", 2);
             session.Routes.Add(new()
             {

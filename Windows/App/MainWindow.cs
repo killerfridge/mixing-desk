@@ -21,6 +21,7 @@ sealed partial class MainWindow : Window
     readonly System.Windows.Forms.NotifyIcon tray = new(); bool rebuilding, quitting; int selectedTab;
     readonly TextBlock sessionTitle = Ui.Text("", 11, Theme.Muted);
     readonly Button protection = Ui.Button("Output protection", () => { });
+    readonly WrapPanel quick = new();
     public MainWindow(bool smokeTest = false)
     {
         store = new DeskStore(loadSavedSession: !smokeTest);
@@ -51,6 +52,7 @@ sealed partial class MainWindow : Window
         desk.Items.Add(Item("Add Bus", AddBus));
         desk.Items.Add(Item("Clear All Solos", () => store.Edit(s => s.Strips.ForEach(x => x.Solo = false))));
         desk.Items.Add(Item("Reset All Meters", async () => await store.ResetMeter()));
+        desk.Items.Add(Item("Output Protection…", ShowOutputProtection));
         desk.Items.Add(Item("Scan VST3 Effects", async () => await store.Scan()));
         menu.Items.Add(desk);
         var view = new MenuItem { Header = "_View" };
@@ -93,7 +95,6 @@ sealed partial class MainWindow : Window
         root.Children.Add(toolbar);
         output.SelectionChanged += (_, _) => { if (!rebuilding && output.SelectedItem is Device d) store.Edit(s => s.SelectMonitor(d.Uid, d.Outputs), "Change monitor"); };
         start.Click += async (_, _) => await store.Toggle();
-        var quick = new WrapPanel();
         foreach (var button in new[] { Ui.Button("+ Channel", AddChannel), Ui.Button("+ Bus", AddBus), Ui.Button("Undo", () => store.Undo(false)), Ui.Button("Redo", () => store.Undo(true)), Ui.Button("Clear solos", () => store.Edit(s => s.Strips.ForEach(x => x.Solo = false))), Ui.Button("Reset meters", async () => await store.ResetMeter()), protection })
             quick.Children.Add(button);
         protection.Click += (_, _) => ShowOutputProtection();
@@ -225,6 +226,7 @@ sealed partial class MainWindow : Window
     }
     void BuildBody()
     {
+        quick.Visibility = selectedTab == 2 ? Visibility.Collapsed : Visibility.Visible;
         meters.Clear();
         content.Content = selectedTab switch
         {

@@ -15,19 +15,22 @@ shared engine sources are unchanged by this port.
 | .NET session, routing history, EQ and binary/XML state checks | Passed |
 | WPF self-contained `win-x64` publish | Passed |
 | Windows native DLL, scanner and native test executables | Cross-compiled and linked as PE x86-64; exports and imports inspected |
-| Native tests executing on Windows, MSVC build, Windows CI | Passed at `2dd694b`; see the CI record below |
+| Native tests executing on Windows, MSVC build, Windows CI | Passed at `39e59e0`; see the CI record below |
 | Windows 10 22H2 (including build 19045.6466) | User reports launch, audio and patching working after `42f994b`; full acceptance checklist still outstanding |
-| Windows UI, physical devices, virtual cables and real VST3 vendors | Not yet tested |
+| Automated Windows UI rendering and editing | Passed at `39e59e0`: both themes, all tabs, port connections, delete/undo/redo, native EQ and compact window |
+| Physical dragging/touch, display scaling, virtual cables and real VST3 vendors | Physical-PC acceptance still required |
 
 The local ZIP uses .NET SDK 10.0.401, CMake 4.4.3, Clang/LLD 21.1.5 and
 llvm-mingw UCRT headers/libraries (20260922). It includes the self-contained
 .NET runtime and dependency notices. The normal Windows build script uses
 Visual Studio's x64 toolchain.
 
-[Windows CI run 38230656562](https://github.com/killerfridge/mixing-desk/actions/runs/38230656562)
-passed at `2dd694b`, including MSVC compilation, native and model tests,
-self-contained WPF publishing and ZIP artifact upload. This runner does not
-validate Windows 10, interactive UI or physical audio devices.
+[Windows CI run 38374708881](https://github.com/killerfridge/mixing-desk/actions/runs/38374708881)
+passed at `39e59e0`, including MSVC compilation, native and model tests,
+self-contained WPF publishing, desktop startup/editing checks and ZIP artifact
+upload. Rendered screenshots were reviewed for the desk, patching, pipeline,
+compact window and EQ. This runner does not validate Windows 10, real mouse/touch
+gestures or physical audio devices.
 
 The 12 October compatibility change lowers the startup minimum from Windows 11
 to Windows 10 22H2 (build 19045) and replaces the Windows-11-only application
