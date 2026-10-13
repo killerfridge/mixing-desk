@@ -23,6 +23,23 @@ sealed class DeskStore : IAsyncDisposable
     readonly DispatcherTimer apply = new() { Interval = TimeSpan.FromMilliseconds(80) };
     readonly string saved = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mixing Desk", "session.json");
     bool polling, pending, disposed, discovery; int tick, generation; string lastAudio = ""; Task? applyTask;
+    readonly bool persistSession;
+    Session? routingGestureStart; string routingGestureName = "";
+    public void RoutingGesture(bool active, string name)
+    {
+        if (active)
+        {
+            routingGestureStart ??= Session.Clone();
+            routingGestureName = name;
+        }
+        else if (routingGestureStart is Session before)
+        {
+            routingGestureStart = null;
+            History.Record(routingGestureName, before, Session);
+            Changed?.Invoke();
+        }
+    }
+    internal void StopPollingForSmokeTest() => poll.Stop();
     public Session Session { get; private set; } = Session.Starter();
     public RoutingHistory History { get; } = new();
     public List<Device> Devices { get; private set; } = [];
@@ -41,6 +58,7 @@ sealed class DeskStore : IAsyncDisposable
     public event Action? Changed, MeterChanged, DiscoveryChanged;
     public DeskStore(bool loadSavedSession = true)
     {
+        persistSession = loadSavedSession;
         try
         {
             if (loadSavedSession && File.Exists(saved))
@@ -74,7 +92,7 @@ sealed class DeskStore : IAsyncDisposable
         Message = message;
         Changed?.Invoke();
     }
-    public void Edit(Action<Session> edit, string? routing = null, bool rebuild = true)
+    public void Edit(Action<Session> edit, string? routing = null, bool rebuild = true, bool audio = true)
     {
         if (Busy || disposed)
             return;
@@ -84,14 +102,17 @@ sealed class DeskStore : IAsyncDisposable
             var next = before.Clone();
             edit(next);
             next.Validate();
-            if (routing is not null)
+            if (routing is not null && routingGestureStart is null)
                 History.Record(routing, before, next);
             Session = next;
             ++generation;
             Save();
-            pending = true;
-            apply.Stop();
-            apply.Start();
+            if (audio)
+            {
+                pending = true;
+                apply.Stop();
+                apply.Start();
+            }
             if (rebuild)
                 Changed?.Invoke();
         }
@@ -158,7 +179,10 @@ sealed class DeskStore : IAsyncDisposable
             if (tick % 100 == 0)
             {
                 // A failed autosave must not disable audio status or metering.
-                try { await CaptureStates(); }
+                try
+                {
+                    await CaptureStates();
+                }
                 catch (Exception e) { Error(e); }
             }
         }
@@ -222,6 +246,8 @@ sealed class DeskStore : IAsyncDisposable
     }
     void Save()
     {
+        if (!persistSession)
+            return;
         Directory.CreateDirectory(Path.GetDirectoryName(saved)!);
         var temp = saved + ".tmp";
         File.WriteAllText(temp, Session.Encode());
@@ -283,6 +309,7 @@ sealed class DeskStore : IAsyncDisposable
         catch (Exception e) { Error(e); }
     }
     public string SourceName(SourceBinding source) => source.Kind == "application" ? Applications.FirstOrDefault(x => x.Id == source.BundleID)?.Name ?? (source.BundleID.Length == 0 ? "Choose application" : "Application · offline") : Devices.FirstOrDefault(x => x.Uid == source.DeviceUID)?.Name ?? (source.DeviceUID.Length == 0 ? "Choose input" : "Device · offline");
+    public bool SourceOnline(SourceBinding source) => source.Kind == "application" ? Applications.Any(x => x.Id == source.BundleID) : Devices.Any(x => x.Uid == source.DeviceUID && x.Inputs > 0);
     public async ValueTask DisposeAsync()
     {
         if (disposed)

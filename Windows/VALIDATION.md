@@ -1,4 +1,4 @@
-# Windows port validation — updated 12 October 2026
+# Windows port validation — updated 13 October 2026
 
 Implementation branch: `codex/windows-x64`, based on `d9ca210`.
 Validation hosts: Apple Silicon macOS and GitHub's `windows-2025` runner.
@@ -16,7 +16,7 @@ shared engine sources are unchanged by this port.
 | WPF self-contained `win-x64` publish | Passed |
 | Windows native DLL, scanner and native test executables | Cross-compiled and linked as PE x86-64; exports and imports inspected |
 | Native tests executing on Windows, MSVC build, Windows CI | Passed at `2dd694b`; see the CI record below |
-| Windows 10 22H2 (including build 19045.6466) | User launch at `a074b25` revealed a WPF style setup crash; correction needs a physical-PC retest |
+| Windows 10 22H2 (including build 19045.6466) | User reports launch, audio and patching working after `42f994b`; full acceptance checklist still outstanding |
 | Windows UI, physical devices, virtual cables and real VST3 vendors | Not yet tested |
 
 The local ZIP uses .NET SDK 10.0.401, CMake 4.4.3, Clang/LLD 21.1.5 and
@@ -42,6 +42,12 @@ The build now includes a desktop startup check against the published app. It
 renders the main window, initializes the native host with a fresh session, and
 quits without starting audio. A failed launch prevents packaging. This closes
 a gap in the original checks, which published WPF but never launched it.
+
+On 13 October the user confirmed that audio and patching work on the test PC.
+This is not a measured latency or long-duration acceptance result. The subsequent
+interface update adds model checks for pipeline topology and tracing, and expands
+the Windows smoke test to render each tab in both themes, connect through ports,
+delete/undo nodes and verify the native EQ response. See [PARITY.md](PARITY.md).
 
 The native diagnostics in the ZIP can run on Windows without installing an SDK.
 They include an isolated synthetic VST3 scanner/lifecycle fixture. The synthetic

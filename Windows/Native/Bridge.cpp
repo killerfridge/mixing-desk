@@ -35,7 +35,21 @@ char *mdw_request(void *raw, const char *operation, const char *text) {
     auto &h = *static_cast<Handle *>(raw);
     std::string op = operation;
     Json result;
-    if (op == "validate") {
+    if (op == "eqResponse") {
+      desk::EQParameters p;
+      p.lowFrequency = args.value("lowFrequency", 120.);
+      p.lowGain = args.value("lowGain", 0.);
+      p.midFrequency = args.value("midFrequency", 1000.);
+      p.midGain = args.value("midGain", 0.);
+      p.midQ = args.value("midQ", 1.);
+      p.highFrequency = args.value("highFrequency", 8000.);
+      p.highGain = args.value("highGain", 0.);
+      p.outputGain = args.value("outputGain", 0.);
+      auto eq = desk::prepareEQ(p);
+      result = Json::array();
+      for (int i = 0; i < 256; ++i)
+        result.push_back(desk::eqResponseDB(eq, 20 * std::pow(1000., i / 255.)));
+    } else if (op == "validate") {
       validateSession(args);
       result = true;
     } else {

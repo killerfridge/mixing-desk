@@ -9,6 +9,7 @@ static class StartupLog
 {
     static readonly object sync = new();
     static string? path;
+    internal static string? DirectoryPath => path is null ? null : Path.GetDirectoryName(path);
     public static string LocationMessage => path is null ? "The startup log could not be written." : "Details saved to:\n" + path;
 
     public static void Start()

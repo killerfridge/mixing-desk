@@ -711,8 +711,19 @@ public:
     if (configuration_)
       for (int i = 0; i < configuration_->protectionGroupCount; ++i) {
         auto &g = configuration_->protectionGroups[i];
-        outputs.push_back(meterJson(engine_->outputMeterForGroup(g.identity),
-                                    std::to_string(g.identity)));
+        auto meter = meterJson(engine_->outputMeterForGroup(g.identity),
+                               std::to_string(g.identity));
+        meter["destinations"] = Json::array();
+        for (const auto &[uid, binding] : outputs_) {
+          Json channels = Json::array();
+          for (int c = g.firstChannel; c >= 0;
+               c = configuration_->nextProtectionChannel[c])
+            if (c >= binding.offset && c < binding.offset + binding.channels)
+              channels.push_back(c - binding.offset);
+          if (!channels.empty())
+            meter["destinations"].push_back({{"uid", uid}, {"channels", channels}});
+        }
+        outputs.push_back(std::move(meter));
       }
     // Render publishes queue diagnostics through atomics.
     for (auto &e : endpoints_)

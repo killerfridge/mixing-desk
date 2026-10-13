@@ -24,6 +24,7 @@ try {
     Copy-Item "$dotnetRoot/ThirdPartyNotices.txt" "$publish/Licenses/dotnet-third-party.txt"
     Copy-Item Windows/README.md "$publish/README-Windows.md"
     Copy-Item Windows/VALIDATION.md "$publish/VALIDATION.md"
+    Copy-Item Windows/PARITY.md "$publish/PARITY.md"
     New-Item -ItemType Directory -Force "$publish/Diagnostics" | Out-Null
     foreach ($binary in @("DeskEngineTests.exe", "DeskWindowsTests.exe", "DeskVstTests.exe", "DeskVstFixture.vst3")) {
         Copy-Item "$native/$Configuration/$binary" "$publish/Diagnostics/$binary"

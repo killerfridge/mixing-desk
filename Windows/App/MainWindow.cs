@@ -19,6 +19,8 @@ sealed partial class MainWindow : Window
     readonly Button start = new() { Content = "Start Audio" }; readonly ComboBox output = new() { Width = 270, Margin = new Thickness(4), DisplayMemberPath = "Name", SelectedValuePath = "Uid" };
     readonly TabControl tabs = new() { Margin = new Thickness(10, 0, 10, 0) }; readonly Dictionary<string, List<Meter>> meters = [];
     readonly System.Windows.Forms.NotifyIcon tray = new(); bool rebuilding, quitting; int selectedTab;
+    readonly TextBlock sessionTitle = Ui.Text("", 11, Theme.Muted);
+    readonly Button protection = Ui.Button("Output protection", () => { });
     public MainWindow(bool smokeTest = false)
     {
         store = new DeskStore(loadSavedSession: !smokeTest);
@@ -27,13 +29,20 @@ sealed partial class MainWindow : Window
         Height = 780;
         MinWidth = 800;
         MinHeight = 520;
-        Background = Theme.Background;
-        Foreground = Theme.Text;
+        Theme.Bind(this, BackgroundProperty, Theme.Background);
+        Theme.Bind(this, ForegroundProperty, Theme.Text);
+        FontFamily = new FontFamily("Segoe UI");
+        UseLayoutRounding = true;
         Content = root;
         var menu = new Menu();
         var file = new MenuItem { Header = "_File" };
         file.Items.Add(Item("_Open Session…", async () => await Open()));
         file.Items.Add(Item("_Export Session…", async () => await Export()));
+        file.Items.Add(Item("Rename session…", RenameSession));
+        file.Items.Add(Item("Save preset…", SavePreset));
+        var presets = new MenuItem { Header = "Load preset" };
+        presets.SubmenuOpened += (_, _) => { presets.Items.Clear(); foreach (var path in PresetFiles()) presets.Items.Add(Item(System.IO.Path.GetFileNameWithoutExtension(path), async () => { try { await store.Load(path); } catch (Exception e) { store.Error(e); } })); if (presets.Items.Count == 0) presets.Items.Add(new MenuItem { Header = "No saved presets", IsEnabled = false }); };
+        file.Items.Add(presets);
         file.Items.Add(new Separator());
         file.Items.Add(Item("_Quit", async () => await Quit()));
         menu.Items.Add(file);
@@ -44,13 +53,38 @@ sealed partial class MainWindow : Window
         desk.Items.Add(Item("Reset All Meters", async () => await store.ResetMeter()));
         desk.Items.Add(Item("Scan VST3 Effects", async () => await store.Scan()));
         menu.Items.Add(desk);
+        var view = new MenuItem { Header = "_View" };
+        var appearance = new MenuItem { Header = "Appearance" };
+        foreach (string choice in new[] { "System", "Light", "Dark" })
+        {
+            var item = Item(choice, () => { Preferences.Current.Appearance = choice; Preferences.Current.Save(); RefreshAppearance(); });
+            item.IsCheckable = true;
+            appearance.Items.Add(item);
+        }
+        appearance.SubmenuOpened += (_, _) => { foreach (MenuItem item in appearance.Items) item.IsChecked = (string)item.Header == Preferences.Current.Appearance; };
+        view.Items.Add(appearance);
+        var density = new MenuItem { Header = "Desk layout" };
+        foreach (string choice in new[] { "Automatic", "Compact", "Comfortable" })
+        {
+            var item = Item(choice, () => { Preferences.Current.Density = choice; Preferences.Current.Save(); Rebuild(); });
+            item.IsCheckable = true;
+            density.Items.Add(item);
+        }
+        density.SubmenuOpened += (_, _) => { foreach (MenuItem item in density.Items) item.IsChecked = (string)item.Header == Preferences.Current.Density; };
+        view.Items.Add(density);
+        menu.Items.Add(view);
         var help = new MenuItem { Header = "_Help" };
         help.Items.Add(Item("Windows Setup Guide", () => { tabs.SelectedIndex = 3; }));
         menu.Items.Add(help);
         DockPanel.SetDock(menu, Dock.Top);
         root.Children.Add(menu);
         var toolbar = new DockPanel { Margin = new Thickness(16, 12, 16, 8) };
-        toolbar.Children.Add(Ui.Text("MIXING DESK", 22));
+        var brand = new StackPanel();
+        var brandName = Ui.Text("MIXING DESK", 22);
+        brandName.FontWeight = FontWeights.Bold;
+        brand.Children.Add(brandName);
+        brand.Children.Add(sessionTitle);
+        toolbar.Children.Add(brand);
         var actions = Ui.Row(Ui.Text("Monitor", 12, Theme.Muted), output, start);
         DockPanel.SetDock(actions, Dock.Right);
         toolbar.Children.Add(actions);
@@ -58,7 +92,10 @@ sealed partial class MainWindow : Window
         root.Children.Add(toolbar);
         output.SelectionChanged += (_, _) => { if (!rebuilding && output.SelectedItem is Device d) store.Edit(s => s.SelectMonitor(d.Uid, d.Outputs), "Change monitor"); };
         start.Click += async (_, _) => await store.Toggle();
-        var quick = Ui.Row(Ui.Button("+ Channel", AddChannel), Ui.Button("+ Bus", AddBus), Ui.Button("Undo routing", () => store.Undo(false)), Ui.Button("Redo routing", () => store.Undo(true)), Ui.Button("Clear solos", () => store.Edit(s => s.Strips.ForEach(x => x.Solo = false))), Ui.Button("Reset meters", async () => await store.ResetMeter()));
+        var quick = new WrapPanel();
+        foreach (var button in new[] { Ui.Button("+ Channel", AddChannel), Ui.Button("+ Bus", AddBus), Ui.Button("Undo", () => store.Undo(false)), Ui.Button("Redo", () => store.Undo(true)), Ui.Button("Clear solos", () => store.Edit(s => s.Strips.ForEach(x => x.Solo = false))), Ui.Button("Reset meters", async () => await store.ResetMeter()), protection })
+            quick.Children.Add(button);
+        protection.Click += (_, _) => ShowOutputProtection();
         quick.Margin = new Thickness(12, 0, 12, 8);
         DockPanel.SetDock(quick, Dock.Top);
         root.Children.Add(quick);
@@ -86,12 +123,14 @@ sealed partial class MainWindow : Window
             if (smokeTest)
             {
                 await firstRender.Task;
+                if (initialized)
+                    await CheckInterface();
                 StartupLog.Write(initialized ? "PASS: desktop startup" : "FAIL: desktop startup");
                 await Quit(initialized ? 0 : 1);
             }
         };
         Closing += (_, e) => { if (!quitting) { e.Cancel = true; Hide(); } };
-        PreviewKeyDown += (_, e) => { if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return; if (e.Key == Key.O) { _ = Open(); e.Handled = true; } if (e.Key == Key.S && (Keyboard.Modifiers & ModifierKeys.Shift) != 0) { _ = Export(); e.Handled = true; } if (e.Key == Key.Z) { store.Undo((Keyboard.Modifiers & ModifierKeys.Shift) != 0); e.Handled = true; } if (e.Key == Key.Y) { store.Undo(true); e.Handled = true; } if (e.Key == Key.L && (Keyboard.Modifiers & ModifierKeys.Shift) != 0) { store.Edit(s => s.Strips.ForEach(x => x.Solo = false)); e.Handled = true; } };
+        PreviewKeyDown += (_, e) => { if (e.OriginalSource is TextBox) return; if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return; if (e.Key == Key.O) { _ = Open(); e.Handled = true; } if (e.Key == Key.S && (Keyboard.Modifiers & ModifierKeys.Shift) != 0) { _ = Export(); e.Handled = true; } if (e.Key == Key.Z) { store.Undo((Keyboard.Modifiers & ModifierKeys.Shift) != 0); e.Handled = true; } if (e.Key == Key.Y) { store.Undo(true); e.Handled = true; } if (e.Key == Key.L && (Keyboard.Modifiers & ModifierKeys.Shift) != 0) { store.Edit(s => s.Strips.ForEach(x => x.Solo = false)); e.Handled = true; } };
         tray.Icon = System.Drawing.SystemIcons.Application;
         tray.Text = "Mixing Desk";
         tray.Visible = true;
@@ -99,9 +138,26 @@ sealed partial class MainWindow : Window
         tray.ContextMenuStrip = new();
         tray.ContextMenuStrip.Items.Add("Show Mixing Desk", null, (_, _) => Dispatcher.Invoke(() => { Show(); Activate(); }));
         tray.ContextMenuStrip.Items.Add("Start / Stop Audio", null, async (_, _) => await Dispatcher.InvokeAsync(async () => await store.Toggle()).Task.Unwrap());
+        tray.ContextMenuStrip.Items.Add("Clear All Solos", null, (_, _) => Dispatcher.Invoke(() => store.Edit(s => s.Strips.ForEach(x => x.Solo = false))));
+        tray.ContextMenuStrip.Items.Add("Reset All Meters", null, async (_, _) => await Dispatcher.InvokeAsync(async () => await store.ResetMeter()).Task.Unwrap());
         tray.ContextMenuStrip.Items.Add("Quit", null, async (_, _) => await Dispatcher.InvokeAsync(async () => await Quit()).Task.Unwrap());
         SystemEvents.PowerModeChanged += PowerChanged;
+        SystemEvents.UserPreferenceChanged += AppearanceChanged;
+        bool compact = CompactDesk;
+        SizeChanged += (_, _) => { bool next = CompactDesk; if (next != compact) { compact = next; if (selectedTab == 0) Rebuild(); } };
+        PreviewKeyDown += (_, e) => { if (selectedTab == 2 && e.OriginalSource is not TextBox) pipelineKeys?.Invoke(e); };
         Rebuild();
+    }
+    bool CompactDesk => Preferences.Current.Density == "Compact" || (Preferences.Current.Density == "Automatic" && (ActualWidth < 1250 || ActualHeight < 850));
+    void RefreshAppearance()
+    {
+        Theme.Apply();
+        Rebuild();
+    }
+    void AppearanceChanged(object sender, UserPreferenceChangedEventArgs e)
+    {
+        if (Preferences.Current.Appearance == "System")
+            Dispatcher.BeginInvoke(RefreshAppearance);
     }
     static MenuItem Item(string name, Action action)
     {
@@ -120,6 +176,7 @@ sealed partial class MainWindow : Window
             return;
         quitting = true;
         SystemEvents.PowerModeChanged -= PowerChanged;
+        SystemEvents.UserPreferenceChanged -= AppearanceChanged;
         tray.Visible = false;
         tray.Dispose();
         await store.DisposeAsync();
@@ -150,6 +207,7 @@ sealed partial class MainWindow : Window
         if (rebuilding)
             return;
         rebuilding = true;
+        sessionTitle.Text = $"{store.Session.Name}  /  {store.Session.Strips.Count} channels · {store.Session.Buses.Count} buses";
         var devices = store.Devices.Where(x => x.Outputs > 0).ToList();
         if (store.Session.MonitorDeviceUID.Length > 0 && devices.All(x => x.Uid != store.Session.MonitorDeviceUID))
             devices.Add(new(store.Session.MonitorDeviceUID, "Selected output · offline", 0, 2));
@@ -182,58 +240,86 @@ sealed partial class MainWindow : Window
         if (!meters.TryGetValue(key, out var list))
             meters[key] = list = [];
         list.Add(m);
-        m.MouseLeftButtonUp += async (_, _) => await store.ResetMeter(id, bus);
+        m.Reset = async () => await store.ResetMeter(id, bus);
+        System.Windows.Automation.AutomationProperties.SetName(m, "Reset " + (bus ? "bus" : "channel") + " peak meter");
         return m;
     }
     void UpdateMeters()
     {
         foreach (var kind in new[] { "strips", "buses" })
-        if (store.Status[kind] is JsonArray values)
-        foreach (var value in values)
-        {
-            var key = (kind == "buses" ? "b:" : "s:") + value!["id"]!.GetValue<string>();
-            if (meters.TryGetValue(key, out var list))
-            foreach (var meter in list)
-                meter.Update(value);
-        }
+            if (store.Status[kind] is JsonArray values)
+                foreach (var value in values)
+                {
+                    var key = (kind == "buses" ? "b:" : "s:") + value!["id"]!.GetValue<string>();
+                    if (meters.TryGetValue(key, out var list))
+                        foreach (var meter in list)
+                            meter.Update(value);
+                }
         double load = store.Status["load"]?.GetValue<double>() ?? 0;
         int solos = store.Session.Strips.Count(x => x.Solo);
         var offline = store.Status["offline"] as JsonArray;
         var plugins = store.Status["plugins"] as JsonArray;
         int unavailable = plugins?.Count(x => x?["available"]?.GetValue<bool>() == false) ?? 0;
         status.Text = $"{(store.Running ? "RUNNING" : "STOPPED")}  ·  48 kHz  ·  DSP {load:P0}  ·  Solo: {solos}  ·  Protection: {(store.Session.OutputProtectionEnabled ? "on" : "bypassed")} (+2 ms)" + ((offline?.Count ?? 0) > 0 ? $"  ·  {offline!.Count} offline source/output(s)" : "") + (unavailable > 0 ? $"  ·  {unavailable} unavailable plugin(s)" : "");
+        var outputMeters = store.Status["outputs"] as JsonArray;
+        double reduction = outputMeters?.Select(x => x?["reductionDB"]?.GetValue<double>() ?? 0).DefaultIfEmpty(0).Max() ?? 0;
+        bool outputClip = outputMeters?.Any(x => x?["clip"]?.GetValue<bool>() == true) == true;
+        protection.Content = (outputClip ? "OVER · " : "") + (!store.Session.OutputProtectionEnabled ? "Output protection bypassed" : reduction > .05 ? $"OUTPUT LIMIT −{reduction:0.0} dB" : "Output protection");
+        protection.Foreground = outputClip ? Brushes.OrangeRed : reduction > .05 ? Theme.Accent : Theme.Muted;
         if (store.Status["clocks"] is JsonArray clocks)
             status.ToolTip = string.Join("\n", clocks.Select(c => $"{(c!["master"]!.GetValue<bool>() ? "Master" : "Synchronized")}: buffer {c["bufferFrames"]} frames, period {c["periodFrames"]} frames (0 = unavailable), endpoint latency {c["latencyMs"]} ms, underruns {c["underruns"]}, overruns {c["overruns"]}, drift {c["driftPPM"]} ppm"));
     }
     UIElement BuildDesk()
     {
         var root = new StackPanel();
+        var bank = new ComboBox { ItemsSource = new[] { "All", "Channels", "Buses" }, SelectedItem = Preferences.Current.Bank, Width = 120, Margin = new Thickness(4) };
+        bank.SelectionChanged += (_, _) => { if (bank.SelectedItem is string value) { Preferences.Current.Bank = value; Preferences.Current.Save(); Rebuild(); } };
+        root.Children.Add(Ui.Row(Ui.Text("Your desk", 23), bank, Ui.Text(CompactDesk ? "Compact layout" : "Comfortable layout", 12, Theme.Muted)));
         var strips = new StackPanel { Orientation = Orientation.Horizontal };
         foreach (var strip in store.Session.Strips)
             strips.Children.Add(ChannelCard(strip));
-        root.Children.Add(Ui.Text("CHANNELS", 12, Theme.Muted));
-        root.Children.Add(new ScrollViewer { Content = strips, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        if (Preferences.Current.Bank != "Buses")
+        {
+            root.Children.Add(Ui.Text("CHANNELS", 12, Theme.Muted));
+            root.Children.Add(new ScrollViewer { Content = strips, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        }
         root.Children.Add(Ui.Row(Ui.Text("BUSES", 12, Theme.Muted), Ui.Check("Final output protection", store.Session.OutputProtectionEnabled, value => store.Edit(s => s.OutputProtectionEnabled = value))));
         var buses = new WrapPanel();
         foreach (var bus in store.Session.Buses)
             buses.Children.Add(BusCard(bus));
-        root.Children.Add(buses);
+        if (Preferences.Current.Bank != "Channels")
+            root.Children.Add(buses);
         return new ScrollViewer { Content = root, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(12) };
     }
     UIElement ChannelCard(ChannelStrip strip)
     {
         string id = strip.Id;
         var panel = new StackPanel();
+        panel.Children.Add(Ui.Text("CHANNEL", 9, Theme.Color(strip.Color)));
         panel.Children.Add(Ui.Text(strip.Name, 17));
         panel.Children.Add(Ui.Text(store.SourceName(strip.Source), 11, Theme.Muted));
         panel.Children.Add(Ui.Button("Source / Settings", () => ChannelDialog(id)));
         panel.Children.Add(NewMeter(id, false));
-        panel.Children.Add(Ui.Row(Ui.Level("FADER · dB", strip.FaderDB, x => store.Edit(s => s.Strips.Single(y => y.Id == id).FaderDB = x, rebuild: false), vertical: true), Ui.Level("TRIM · dB", strip.TrimDB, x => store.Edit(s => s.Strips.Single(y => y.Id == id).TrimDB = x, rebuild: false), vertical: true)));
+        panel.Children.Add(Ui.CompactLevel("TRIM · dB", strip.TrimDB, x => store.Edit(s => s.Strips.Single(y => y.Id == id).TrimDB = x, rebuild: false), -24, 24));
+        panel.Children.Add(Ui.Level("FADER · dB", strip.FaderDB, x => store.Edit(s => s.Strips.Single(y => y.Id == id).FaderDB = x, rebuild: false), vertical: true));
         panel.Children.Add(Ui.Level("PAN / BALANCE", strip.Pan, x => store.Edit(s => s.Strips.Single(y => y.Id == id).Pan = x, rebuild: false), -1, 1));
-        panel.Children.Add(Ui.Row(Ui.Check("Mute", strip.Muted, x => store.Edit(s => s.Strips.Single(y => y.Id == id).Muted = x)), Ui.Check("Solo", strip.Solo, x => store.Edit(s => s.Strips.Single(y => y.Id == id).Solo = x))));
+        panel.Children.Add(Ui.Row(Ui.Toggle("M", strip.Muted, x => store.Edit(s => s.Strips.Single(y => y.Id == id).Muted = x, rebuild: false), "Mute"), Ui.Toggle("S", strip.Solo, x => store.Edit(s => s.Strips.Single(y => y.Id == id).Solo = x, rebuild: false), "Solo in monitor"), Ui.Toggle("Ø", strip.Polarity, x => store.Edit(s => s.Strips.Single(y => y.Id == id).Polarity = x, rebuild: false), "Invert polarity")));
         panel.Children.Add(Ui.Check("Peak protection", strip.LimiterEnabled, x => store.Edit(s => s.Strips.Single(y => y.Id == id).LimiterEnabled = x)));
         panel.Children.Add(Ui.Row(Ui.Button("Sends", () => SendsDialog(id, false)), Ui.Button("Inserts · " + strip.Inserts.Count, () => InsertsDialog(id, false))));
-        return Ui.Card(panel, 200);
+        var sends = new StackPanel();
+        foreach (var send in strip.Sends)
+        {
+            string target = send.BusID;
+            sends.Children.Add(Ui.CompactLevel(store.Session.Buses.Single(b => b.Id == target).Name.ToUpperInvariant(), send.GainDB, x => store.Edit(s => s.Strips.Single(c => c.Id == id).Sends.Single(v => v.BusID == target).GainDB = x, "Send level", false), -90, 12, active => store.RoutingGesture(active, "Send level")));
+            sends.Children.Add(Ui.Toggle("PRE", send.PreFader, x => store.Edit(s => s.Strips.Single(c => c.Id == id).Sends.Single(v => v.BusID == target).PreFader = x, "Send pre/post", false), "Pre-fader send"));
+        }
+        var expander = new Expander { Header = "SENDS", Content = sends, IsExpanded = !CompactDesk, Foreground = Theme.Muted, Margin = new Thickness(4) };
+        panel.Children.Add(expander);
+        var reorder = Ui.Row(Ui.Button("←", () => MoveStrip(id, -1)), Ui.Button("→", () => MoveStrip(id, 1)));
+        panel.Children.Add(reorder);
+        var card = Ui.Card(panel, CompactDesk ? 210 : 235);
+        card.BorderBrush = Theme.Color(strip.Color);
+        return card;
     }
     UIElement BusCard(Bus bus)
     {

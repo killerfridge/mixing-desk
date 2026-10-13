@@ -80,10 +80,28 @@ recording endpoint as the source. Other input devices can still be used.
 ## Controls and compatibility
 
 Desk, Patching and Pipeline edit one session. Pipeline supports draggable nodes,
-drag connections, cable editing, arrangement, pan, zoom and routing undo. Hold
-Shift while dragging a level for fine adjustment; type exact values in readouts.
+drag or click port connections, compatible-target highlighting, individual cable
+editing, downstream/mix-minus tracing, block controls, Fit All, arrangement, pan,
+zoom and routing undo. Patching includes the channel/bus matrix. Select a block
+or cable and press Delete to remove it; the Monitor bus is protected. Escape
+cancels a pending cable. Drag empty canvas to pan; Ctrl+wheel zooms around the
+pointer and Shift+wheel pans horizontally. The Connections menu also supports
+keyboard routing and cable editing.
+
+Choose **View → Appearance → System / Light / Dark** and **View → Desk layout**.
+Channels/Buses/All banks and expandable sends keep small windows usable. File
+includes session naming, preset save/load, and portable JSON import/export.
+Presets are stored in `%LOCALAPPDATA%\Mixing Desk\Presets`.
+
+Double-click a slider to restore its default. Hold Shift while dragging a level
+for fine adjustment; type exact values in readouts (Enter applies, Escape cancels).
 Click meters to clear held peaks. Ctrl+Shift+L clears solos. Ctrl+Z/Y undo/redo
 routing, Ctrl+O opens a session, and Ctrl+Shift+S exports one.
+
+Desk EQ displays the shared native engine's frequency response with logarithmic
+frequency controls, bypass and reset. The output protection indicator opens
+destination/channel details. See the [Mac/Windows feature comparison](PARITY.md)
+for remaining platform differences.
 
 Sessions autosave under `%LOCALAPPDATA%\Mixing Desk\session.json`, with a backup
 of the previous save. Imported Mac bindings remain offline until reassigned.

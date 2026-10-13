@@ -88,6 +88,7 @@ static class Tests
         var au = new InsertSlot { Format = "au", Identifier = "61756678:12345678:12345678", State = xml };
         s.Strips[0].Inserts.Add(au);
         Check(Session.Decode(s.Encode()).Strips[0].Inserts[2].State!.SequenceEqual(xml), "Unavailable AU bytes must survive");
+        PipelineTests.Run();
         Console.WriteLine("PASS: Windows session compatibility, validation, scoped routing undo, EQ, monitor binding, binary/XML plugin state, unavailable AU preservation.");
     }
 }

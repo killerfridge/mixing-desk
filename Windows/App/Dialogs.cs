@@ -13,6 +13,8 @@ sealed partial class MainWindow
     Window Dialog(string title, StackPanel panel, Action? commit = null, string ok = "Save")
     {
         var window = new Window { Title = title, Owner = this, Width = 620, MaxHeight = Math.Max(400, SystemParameters.WorkArea.Height - 80), SizeToContent = SizeToContent.Height, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = Theme.Background, Foreground = Theme.Text };
+        Theme.Bind(window, Window.BackgroundProperty, Theme.Background);
+        Theme.Bind(window, Window.ForegroundProperty, Theme.Text);
         var dock = new DockPanel { Margin = new Thickness(16) };
         var buttons = Ui.Row(Ui.Button(commit is null ? "Close" : "Cancel", () => window.Close()));
         buttons.HorizontalAlignment = HorizontalAlignment.Right;
@@ -50,6 +52,14 @@ sealed partial class MainWindow
         var strip = store.Session.Strips.Single(x => x.Id == id);
         var p = new StackPanel();
         var name = Field(p, "Channel name", strip.Name);
+        var color = new ComboBox { ItemsSource = new[] { "teal", "amber", "purple", "blue", "rose" }, SelectedItem = strip.Color, Margin = new Thickness(4) };
+        p.Children.Add(Ui.Text("Channel colour", 12, Theme.Muted));
+        p.Children.Add(color);
+        var role = new ComboBox { ItemsSource = new[] { "generic", "guitar", "callReturn" }, SelectedItem = strip.Role, Margin = new Thickness(4) };
+        p.Children.Add(Ui.Text("Role", 12, Theme.Muted));
+        p.Children.Add(role);
+        var protect = Ui.Check("Channel protection (−1 dBFS)", strip.LimiterEnabled, _ => { });
+        p.Children.Add(protect);
         p.Children.Add(Ui.Text("Source type", 12, Theme.Muted));
         var kind = new ComboBox { ItemsSource = new[] { "device", "application" }, SelectedItem = strip.Source.Kind, Margin = new Thickness(4) };
         p.Children.Add(kind);
@@ -82,8 +92,6 @@ sealed partial class MainWindow
         p.Children.Add(returns);
         var polarity = Ui.Check("Invert polarity", strip.Polarity, _ => { });
         p.Children.Add(polarity);
-        var guitar = Ui.Check("Guitar (for direct-monitoring mode)", strip.Role == "guitar", _ => { });
-        p.Children.Add(guitar);
         p.Children.Add(Ui.Text("Direct app capture leaves original playback running. Assigning a new application disables this channel’s Monitor send initially.", 12, Theme.Muted));
         var window = Dialog("Channel Settings", p, () =>
         {
@@ -92,7 +100,7 @@ sealed partial class MainWindow
             var mapping = ParseChannels(channels.Text);
             int available = type == "application" ? 2 : store.Devices.FirstOrDefault(x => x.Uid == selected)?.Inputs ?? 512;
             Session.Require(mapping.All(x => x < available), "Choose channels available on this source.");
-            CommitEdit(s => { var c = s.Strips.Single(x => x.Id == id); bool newApp = type == "application" && (c.Source.Kind != type || c.Source.BundleID != selected); c.Name = name.Text; c.Polarity = polarity.IsChecked == true; if (guitar.IsChecked == true) c.Role = "guitar"; else if (c.Role == "guitar") c.Role = "generic"; c.Source = new() { Kind = type, DeviceUID = type == "device" ? selected : "", BundleID = type == "application" ? selected : "", Channels = mapping, ReturnBundleID = type == "device" ? (string?)returns.SelectedValue ?? "" : "" }; if (newApp) foreach (var send in c.Sends.Where(x => s.Buses.Any(b => b.Id == x.BusID && b.Kind == "monitor"))) send.GainDB = -90; }, "Configure channel");
+            CommitEdit(s => { var c = s.Strips.Single(x => x.Id == id); bool newApp = type == "application" && (c.Source.Kind != type || c.Source.BundleID != selected); c.Name = name.Text; c.Polarity = polarity.IsChecked == true; c.Role = (string?)role.SelectedItem ?? "generic"; c.Color = (string?)color.SelectedItem ?? "teal"; c.LimiterEnabled = protect.IsChecked == true; c.Source = new() { Kind = type, DeviceUID = type == "device" ? selected : "", BundleID = type == "application" ? selected : "", Channels = mapping, ReturnBundleID = type == "device" ? (string?)returns.SelectedValue ?? "" : "" }; if (newApp) foreach (var send in c.Sends.Where(x => s.Buses.Any(b => b.Id == x.BusID && b.Kind == "monitor"))) send.GainDB = -90; }, "Configure channel");
         });
         p.Children.Add(Ui.Button("Remove channel", () => { CommitEdit(s => s.RemoveStrip(id), "Remove channel"); window.Close(); }));
         window.ShowDialog();
@@ -141,22 +149,32 @@ sealed partial class MainWindow
     UIElement BuildPatching()
     {
         var p = new StackPanel { Margin = new Thickness(22) };
-        p.Children.Add(Ui.Text("Output patching", 25));
+        p.Children.Add(Ui.Text("Patch bay", 25));
+        p.Children.Add(Ui.Text("Rows feed columns. Click to connect or disconnect; right-click a patch to edit its level.", 12, Theme.Muted));
+        p.Children.Add(PatchMatrix());
+        p.Children.Add(Ui.Text("Output patches", 22));
         p.Children.Add(Ui.Text("Patch a bus or direct channel output to a hardware or virtual-cable playback endpoint. Virtual device creation is supplied by your installed cable driver.", 13, Theme.Muted));
         p.Children.Add(Ui.Button("+ Output route", () => RouteDialog(null)));
         foreach (var route in store.Session.Routes)
         {
             var name = route.SourceKind == "bus" ? store.Session.Buses.FirstOrDefault(x => x.Id == route.SourceID)?.Name : store.Session.Strips.FirstOrDefault(x => x.Id == route.SourceID)?.Name;
             var device = store.Devices.FirstOrDefault(x => x.Uid == route.DestinationUID)?.Name ?? route.DestinationUID + " · offline";
-            var row = Ui.Row(Ui.Text($"{name} → {device}  ·  Ch {ChannelText(route.Channels)}  ·  {route.GainDB:0.0} dB"), Ui.Button("Edit", () => RouteDialog(route.Id)), Ui.Button("Remove", () => store.Edit(s => s.Routes.RemoveAll(x => x.Id == route.Id), "Remove output route")));
-            p.Children.Add(Ui.Card(row));
+            var row = new DockPanel();
+            var actions = Ui.Row(Ui.Button("Edit", () => RouteDialog(route.Id)), Ui.Button("Remove", () => store.Edit(s => s.Routes.RemoveAll(x => x.Id == route.Id), "Remove output route")));
+            DockPanel.SetDock(actions, Dock.Right);
+            row.Children.Add(actions);
+            row.Children.Add(Ui.Text($"{name} → {device}  ·  Ch {ChannelText(route.Channels)}"));
+            var routePanel = new StackPanel();
+            routePanel.Children.Add(row);
+            routePanel.Children.Add(Ui.CompactLevel("ROUTE LEVEL · dB", route.GainDB, x => store.Edit(s => s.Routes.Single(r => r.Id == route.Id).GainDB = x, "Output route level", false), -90, 12, active => store.RoutingGesture(active, "Output route level")));
+            p.Children.Add(Ui.Card(routePanel));
         }
         p.Children.Add(Ui.Text("Channel and bus sends", 22));
         foreach (var strip in store.Session.Strips)
             p.Children.Add(Ui.Row(Ui.Text(strip.Name), Ui.Button("Edit sends", () => SendsDialog(strip.Id, false))));
         foreach (var bus in store.Session.Buses)
             p.Children.Add(Ui.Row(Ui.Text(bus.Name), Ui.Button("Edit sends", () => SendsDialog(bus.Id, true))));
-        return new ScrollViewer { Content = p, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto };
+        return new ScrollViewer { Content = p, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
     }
     void RouteDialog(string? routeId, string? sourceKind = null, string? sourceId = null, string? destination = null)
     {
@@ -176,11 +194,14 @@ sealed partial class MainWindow
         output.SelectedValue = initial;
         p.Children.Add(Ui.Text("Playback endpoint"));
         p.Children.Add(output);
-        var channels = Field(p, "Output channels (1-based)", ChannelText(old?.Channels ?? [0, 1]));
+        var channels = Field(p, "Output channels (1-based)", ChannelText(old?.Channels ?? (store.Devices.FirstOrDefault(d => d.Uid == initial)?.Outputs == 1 ? [0] : [0, 1])));
         var gain = Field(p, "Route gain (dB)", (old?.GainDB ?? 0).ToString(CultureInfo.InvariantCulture));
         var pre = Ui.Check("Pre-fader (direct channels only)", old?.PreFader ?? false, _ => { });
         p.Children.Add(pre);
-        Dialog("Output Route", p, () => { var key = ((string?)source.SelectedValue ?? "").Split(':', 2); Session.Require(key.Length == 2, "Choose a source."); string uid = (string?)output.SelectedValue ?? ""; Session.Require(uid.Length > 0, "Choose an output."); var mapping = ParseChannels(channels.Text); var device = store.Devices.FirstOrDefault(x => x.Uid == uid); Session.Require(device is null ? old is not null && old.DestinationUID == uid && old.Channels.SequenceEqual(mapping) : mapping.All(x => x < device.Outputs), "Choose available output channels."); var route = new OutputRoute { Id = old?.Id ?? Session.NewId(), SourceKind = key[0], SourceID = key[1], DestinationUID = uid, Channels = mapping, GainDB = double.Parse(gain.Text, CultureInfo.InvariantCulture), PreFader = key[0] == "strip" && pre.IsChecked == true }; CommitEdit(s => { int i = s.Routes.FindIndex(x => x.Id == route.Id); if (i >= 0) s.Routes[i] = route; else s.Routes.Add(route); }, "Patch output"); }).ShowDialog();
+        var routeWindow = Dialog("Output Route", p, () => { var key = ((string?)source.SelectedValue ?? "").Split(':', 2); Session.Require(key.Length == 2, "Choose a source."); string uid = (string?)output.SelectedValue ?? ""; Session.Require(uid.Length > 0, "Choose an output."); var mapping = ParseChannels(channels.Text); var device = store.Devices.FirstOrDefault(x => x.Uid == uid); Session.Require(device is null ? old is not null && old.DestinationUID == uid && old.Channels.SequenceEqual(mapping) : mapping.All(x => x < device.Outputs), "Choose available output channels."); var route = new OutputRoute { Id = old?.Id ?? Session.NewId(), SourceKind = key[0], SourceID = key[1], DestinationUID = uid, Channels = mapping, GainDB = double.Parse(gain.Text, CultureInfo.InvariantCulture), PreFader = key[0] == "strip" && pre.IsChecked == true }; CommitEdit(s => { int i = s.Routes.FindIndex(x => x.Id == route.Id); if (i >= 0) s.Routes[i] = route; else s.Routes.Add(route); }, "Patch output"); });
+        if (old is not null)
+            p.Children.Add(Ui.Button("Disconnect", () => { store.Edit(s => s.Routes.RemoveAll(r => r.Id == old.Id), "Disconnect output"); routeWindow.Close(); }));
+        routeWindow.ShowDialog();
     }
     void InsertsDialog(string id, bool bus)
     {
@@ -215,24 +236,14 @@ sealed partial class MainWindow
             {
                 p.Children.Add(Ui.Button("+ Desk EQ", () => Edit(x => x.Add(new()))));
                 var plugins = new ComboBox { ItemsSource = store.Plugins.Select(x => new Choice(x!["id"]!.GetValue<string>(), x["name"]!.GetValue<string>())).ToList(), Margin = new Thickness(4) };
+                var search = Field(p, "Find VST3 effects by name or manufacturer", "");
+                search.TextChanged += (_, _) => plugins.ItemsSource = store.Plugins.Where(x => ((x?["name"]?.GetValue<string>() ?? "") + " " + (x?["manufacturer"]?.GetValue<string>() ?? "")).Contains(search.Text, StringComparison.OrdinalIgnoreCase)).Select(x => new Choice(x!["id"]!.GetValue<string>(), x["name"]!.GetValue<string>() + " · " + x["manufacturer"]?.GetValue<string>())).ToList();
                 p.Children.Add(plugins);
                 p.Children.Add(Ui.Row(Ui.Button("Scan VST3 effects", async () => { await store.Scan(); Refresh(); }), Ui.Button("+ Selected VST3", () => { if (plugins.SelectedItem is Choice c) Edit(x => x.Add(new() { Format = "vst3", Identifier = c.Id, Name = c.Name })); })));
             }
         }
         Refresh();
         window.ShowDialog();
-    }
-    void EqDialog(string id)
-    {
-        var slot = store.Session.AllInserts.Single(x => x.Id == id);
-        var eq = slot.ReadEq();
-        var p = new StackPanel();
-        foreach (var spec in new[] { ("LowFrequency", "Low shelf frequency · Hz", 20d, 20000d), ("LowGain", "Low gain · dB", -18d, 18d), ("MidFrequency", "Mid frequency · Hz", 20d, 20000d), ("MidGain", "Mid gain · dB", -18d, 18d), ("MidQ", "Mid Q", .1, 10d), ("HighFrequency", "High shelf frequency · Hz", 20d, 20000d), ("HighGain", "High gain · dB", -18d, 18d), ("OutputGain", "Output gain · dB", -18d, 18d) })
-        {
-            var property = typeof(EqSettings).GetProperty(spec.Item1)!;
-            p.Children.Add(Ui.Level(spec.Item2, (double)property.GetValue(eq)!, value => { property.SetValue(eq, value); store.Edit(s => s.AllInserts.Single(x => x.Id == id).WriteEq(eq), rebuild: false); }, spec.Item3, spec.Item4));
-        }
-        Dialog("Desk EQ", p).ShowDialog();
     }
     async System.Threading.Tasks.Task ParameterDialog(string id)
     {
