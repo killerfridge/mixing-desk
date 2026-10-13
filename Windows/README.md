@@ -14,11 +14,23 @@ completed checks from those still requiring Windows.
 ## Build on Windows
 
 Install the .NET 10 SDK, CMake 3.24 or newer, and Visual Studio Build Tools with
-Desktop development with C++ and a current Windows SDK. From a Developer
-PowerShell terminal at the repository root:
+Desktop development with C++ and a current Windows SDK. Visual Studio 2026 needs
+[CMake 4.2 or newer](https://cmake.org/cmake/help/latest/generator/Visual%20Studio%2018%202026.html).
+From PowerShell at the repository root (a Developer terminal is not required):
 
 ```powershell
 ./scripts/build-windows.ps1
+```
+
+The script selects the newest installed Visual Studio C++ toolchain supported by
+your CMake, including standalone Build Tools. It explicitly requests an x64 Visual
+Studio generator, so an NMake default does not interfere. Each Visual Studio
+version has its own native build folder, such as `build/windows-native-vs18-x64`;
+old `build/windows-native` and `build-vs2026` folders are left intact. To choose a
+particular installed version, use:
+
+```powershell
+./scripts/build-windows.ps1 -Generator "Visual Studio 18 2026"
 ```
 
 The script builds native x64 binaries, runs the engine/Windows/model tests,

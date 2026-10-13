@@ -1,12 +1,42 @@
-param([string]$Configuration = "Release", [switch]$SkipTests)
+param([string]$Configuration = "Release", [switch]$SkipTests, [string]$Generator = "")
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 try {
     function Run([scriptblock]$Command) { & $Command; if ($LASTEXITCODE -ne 0) { throw "Build step failed with exit code $LASTEXITCODE" } }
-    $native = "build/windows-native"
+    # Do not inherit CMAKE_GENERATOR from a Developer PowerShell terminal: NMake
+    # cannot accept -A x64 or produce the configuration folders used below.
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio/Installer/vswhere.exe"
+    if (-not (Test-Path $vswhere)) {
+        $vswhereCommand = Get-Command vswhere.exe -ErrorAction SilentlyContinue
+        if (-not $vswhereCommand) { throw "Visual Studio Installer was not found. Install Visual Studio Build Tools with Desktop development with C++ and a Windows SDK." }
+        $vswhere = $vswhereCommand.Source
+    }
+    $vsJson = & $vswhere -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -format json
+    if ($LASTEXITCODE -ne 0) { throw "Visual Studio toolchain discovery failed with exit code $LASTEXITCODE." }
+    $installations = @((($vsJson -join "`n") | ConvertFrom-Json) | Sort-Object { [version]$_.installationVersion } -Descending)
+    if ($installations.Count -eq 0) { throw "No Visual Studio C++ toolchain was found. In Visual Studio Installer, add Desktop development with C++ and a Windows SDK." }
+    $cmakeJson = & cmake -E capabilities
+    if ($LASTEXITCODE -ne 0) { throw "Could not read CMake's supported generators. Install CMake 3.24 or newer (4.2 or newer for Visual Studio 2026)." }
+    $generators = (($cmakeJson -join "`n") | ConvertFrom-Json).generators
+    $visualStudio = $null
+    foreach ($installation in $installations) {
+        $major = ([version]$installation.installationVersion).Major
+        $match = $generators | Where-Object { $_.name -match "^Visual Studio $major " -and (!$Generator -or $_.name -eq $Generator) } | Select-Object -First 1
+        if ($match) {
+            $visualStudio = $installation
+            $Generator = $match.name
+            break
+        }
+    }
+    if (-not $visualStudio) { throw "No installed Visual Studio C++ toolchain matches this CMake's supported generators or the requested -Generator '$Generator'. Update CMake (Visual Studio 2026 requires CMake 4.2 or newer), or select an installed version such as -Generator 'Visual Studio 17 2022'." }
+    # Keep failed NMake caches and other Visual Studio versions separate. Never
+    # remove a user's existing build directory to change generators.
+    $native = "build/windows-native-vs$(([version]$visualStudio.installationVersion).Major)-x64"
     $publish = "build/windows-release/MixingDesk-win-x64"
-    Run { cmake -S . -B $native -A x64 }
+    Write-Host "Native toolchain: $Generator (x64)"
+    Write-Host "Native build folder: $native"
+    Run { cmake -S . -B $native -G $Generator -A x64 "-DCMAKE_GENERATOR_INSTANCE=$($visualStudio.installationPath)" }
     Run { cmake --build $native --config $Configuration --parallel }
     if (-not $SkipTests) {
         Run { ctest --test-dir $native -C $Configuration --output-on-failure }

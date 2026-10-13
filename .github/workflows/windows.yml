@@ -15,8 +15,17 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - name: Build, test and package
-        shell: pwsh
-        run: ./scripts/build-windows.ps1
+        shell: powershell
+        env:
+          CMAKE_GENERATOR: NMake Makefiles
+        run: |
+          # Reproduce a Developer PowerShell default and a previous failed cache.
+          New-Item -ItemType Directory -Force build/windows-native | Out-Null
+          Set-Content build/windows-native/CMakeCache.txt 'CMAKE_GENERATOR:INTERNAL=NMake Makefiles'
+          ./scripts/build-windows.ps1
+          if ((Get-Content build/windows-native/CMakeCache.txt -Raw).Trim() -ne 'CMAKE_GENERATOR:INTERNAL=NMake Makefiles') {
+            throw 'The existing native build cache must be preserved.'
+          }
       - name: Collect startup diagnostics
         if: always()
         shell: pwsh
