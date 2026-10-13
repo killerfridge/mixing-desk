@@ -362,7 +362,7 @@ sealed partial class MainWindow
                         return;
                     }
                     var at = e.GetPosition(canvas);
-                    var target = graph.Nodes.LastOrDefault(n => n != node && new Rect(positions[n.Key], new Size(NodeWidth, NodeHeight)).Contains(at));
+                    var target = graph.Nodes.LastOrDefault(n => n != node && new Rect(new Point(positions[n.Key].X - 11, positions[n.Key].Y), new Size(NodeWidth + 22, NodeHeight)).Contains(at));
                     if (target is null)
                         Cancel();
                     else

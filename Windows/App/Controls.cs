@@ -17,6 +17,7 @@ sealed class Meter : FrameworkElement
     {
         get; set;
     }
+    public bool Vertical { get; set; }
     public Action? Reset
     {
         get; set;
@@ -48,8 +49,18 @@ sealed class Meter : FrameworkElement
         base.OnRender(dc);
         double Number(string key) => data?[key]?.GetValue<double>() ?? 0;
         double Level(double value) => Math.Clamp((20 * Math.Log10(Math.Max(value, 1e-5)) + 60) / 60, 0, 1);
+        double verticalHeight = Math.Max(1, ActualHeight - 23);
         for (int i = 0; i < 2; ++i)
         {
+            if (Vertical)
+            {
+                double x = i * 12, height = verticalHeight * Level(Number(i == 0 ? "peakL" : "peakR"));
+                dc.DrawRoundedRectangle(Theme.Recessed, null, new Rect(x, 0, 8, verticalHeight), 2, 2);
+                dc.DrawRoundedRectangle(Number(i == 0 ? "peakL" : "peakR") >= .99 ? Brushes.OrangeRed : Theme.Color("teal"), null, new Rect(x, verticalHeight - height, 8, height), 2, 2);
+                double yHeld = verticalHeight * (1 - Level(Number(i == 0 ? "heldL" : "heldR")));
+                dc.DrawLine(new Pen(Theme.Text, 1), new Point(x, yHeld), new Point(x + 8, yHeld));
+                continue;
+            }
             double y = Compact ? i * 6 : 2 + i * 12, barHeight = Compact ? 3 : 8;
             dc.DrawRoundedRectangle(Theme.Recessed, null, new Rect(0, y, ActualWidth, barHeight), 2, 2);
             double value = Number(i == 0 ? "peakL" : "peakR");
@@ -59,8 +70,13 @@ sealed class Meter : FrameworkElement
         }
         double peak = Math.Max(Number("heldL"), Number("heldR")), reduction = Number("reductionDB");
         bool clipped = data?["clip"]?.GetValue<bool>() ?? false;
+        if (Vertical)
+            foreach (int db in new[] { 0, -12, -24, -36, -48, -60 })
+                dc.DrawText(new FormattedText(db.ToString(), CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 9, Theme.Muted, VisualTreeHelper.GetDpi(this).PixelsPerDip), new Point(27, Math.Clamp(-db / 60.0 * verticalHeight - 5, 0, verticalHeight - 10)));
         string text = (peak > 1e-5 ? (20 * Math.Log10(peak)).ToString("0.0", CultureInfo.InvariantCulture) : "−∞") + " dBFS" + (clipped ? "  CLIP" : reduction > .05 ? "  LIMIT " + reduction.ToString("0.0") : "");
-        dc.DrawText(new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), Compact ? 9 : 11, clipped ? Brushes.OrangeRed : Theme.Muted, VisualTreeHelper.GetDpi(this).PixelsPerDip), new Point(0, Compact ? 12 : 29));
+        if (Vertical && (clipped || reduction > .05))
+            text = clipped ? "CLIP" : "LIMIT −" + reduction.ToString("0.0");
+        dc.DrawText(new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), Compact || Vertical ? 9 : 11, clipped ? Brushes.OrangeRed : Theme.Muted, VisualTreeHelper.GetDpi(this).PixelsPerDip), new Point(0, Vertical ? verticalHeight + 5 : Compact ? 12 : 29));
     }
 }
 sealed class FineSlider : Slider
@@ -248,13 +264,13 @@ static class Ui
         c.Click += (_, _) => changed(c.IsChecked == true);
         return c;
     }
-    public static UIElement Level(string label, double value, Action<double> changed, double min = -90, double max = 12, bool vertical = false, double defaultValue = 0)
+    public static UIElement Level(string label, double value, Action<double> changed, double min = -90, double max = 12, bool vertical = false, double defaultValue = 0, double verticalHeight = 160)
     {
         string format = max - min <= 2 ? "0.###" : "0.0";
         var panel = new StackPanel();
         panel.Children.Add(Text(label, 11, Theme.Muted));
         var readout = new TextBox { Text = value.ToString(format, CultureInfo.InvariantCulture), Width = vertical ? 70 : 64, ToolTip = "Enter an exact value. Hold Shift while dragging for fine adjustment." };
-        var slider = new FineSlider { Minimum = min, Maximum = max, Value = value, DefaultValue = defaultValue, Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal, Height = vertical ? 160 : 25, Width = vertical ? 70 : 180, SmallChange = max - min <= 2 ? .01 : 1, LargeChange = 1, IsMoveToPointEnabled = false, TickFrequency = 1 };
+        var slider = new FineSlider { Minimum = min, Maximum = max, Value = value, DefaultValue = defaultValue, Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal, Height = vertical ? verticalHeight : 25, Width = vertical ? 70 : 180, SmallChange = max - min <= 2 ? .01 : 1, LargeChange = 1, IsMoveToPointEnabled = false, TickFrequency = 1 };
         AutomationProperties.SetName(slider, label);
         AutomationProperties.SetName(readout, label + " exact value");
         double committed = value;

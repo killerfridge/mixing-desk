@@ -87,7 +87,7 @@ sealed partial class MainWindow
             selectedPipelineEdge = null;
             Rebuild();
             await Settle();
-            pipelineKeys?.Invoke(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(this), 0, Key.Delete));
+            pipelineKeys?.Invoke(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(this), 0, Key.Delete) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
             Require(store.Session.Buses.All(b => b.Id != target.Id) && PipelineGraph.Sends(store.Session, source).All(s => s.BusID != target.Id), "Delete must remove the node and its cables.");
             store.Undo(false);
             Require(store.Session.Buses.Any(b => b.Id == target.Id), "Node removal undo failed.");
